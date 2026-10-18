@@ -2,7 +2,10 @@ export const instant = false;
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { POSClient } from './POSClient'
+import { Button } from '@/components/ui/Button'
+import { History } from 'lucide-react'
 
 export default async function VentasPage() {
   const supabase = await createClient()
@@ -18,7 +21,6 @@ export default async function VentasPage() {
 
   if (!store) redirect('/onboarding')
 
-  // Solo traemos productos con stock mayor a 0 para el POS
   const { data: products } = await supabase
     .from('products')
     .select('*')
@@ -29,9 +31,16 @@ export default async function VentasPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900">Punto de Venta</h1>
-        <p className="text-zinc-500">Registra nuevas ventas y actualiza el inventario en tiempo real.</p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">Punto de Venta</h1>
+          <p className="text-zinc-500">Registra nuevas ventas y actualiza el inventario.</p>
+        </div>
+        <Link href="/dashboard/ventas/historial">
+          <Button variant="outline" className="gap-2 bg-white">
+            <History size={18} /> Ver Historial
+          </Button>
+        </Link>
       </div>
       <POSClient initialProducts={products || []} />
     </div>
