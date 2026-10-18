@@ -1,3 +1,4 @@
+export const instant = false;
 import Link from 'next/link'
 import { login } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
