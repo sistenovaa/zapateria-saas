@@ -9,7 +9,6 @@ export async function createProduct(formData: FormData) {
 
   if (!user) return { error: 'No autorizado' }
 
-  // Obtener el store_id del usuario
   const { data: store } = await supabase
     .from('stores')
     .select('id')
@@ -28,6 +27,7 @@ export async function createProduct(formData: FormData) {
     purchase_price: parseFloat(formData.get('purchase_price') as string),
     sale_price: parseFloat(formData.get('sale_price') as string),
     stock: parseInt(formData.get('stock') as string),
+    image_url: formData.get('image_url') as string || null,
   }
 
   const { error } = await supabase.from('products').insert(productData)
@@ -51,6 +51,7 @@ export async function updateProduct(id: string, formData: FormData) {
     purchase_price: parseFloat(formData.get('purchase_price') as string),
     sale_price: parseFloat(formData.get('sale_price') as string),
     stock: parseInt(formData.get('stock') as string),
+    image_url: formData.get('image_url') as string || null,
   }
 
   const { error } = await supabase.from('products').update(productData).eq('id', id)
@@ -65,8 +66,6 @@ export async function updateProduct(id: string, formData: FormData) {
 export async function deleteProduct(id: string) {
   const supabase = await createClient()
 
-  // En lugar de borrarlo de la base de datos (que rompería el historial de ventas), 
-  // solo lo desactivamos (Soft Delete)
   const { error } = await supabase.from('products').update({ is_active: false }).eq('id', id)
 
   if (error) return { error: error.message }

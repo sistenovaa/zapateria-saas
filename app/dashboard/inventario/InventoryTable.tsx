@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ProductModal } from './ProductModal'
 import { Button } from '@/components/ui/Button'
-import { Plus, Edit2, AlertCircle } from 'lucide-react'
+import { Plus, Edit2, AlertCircle, Image as ImageIcon } from 'lucide-react'
 
 interface Product {
   id: string
@@ -15,6 +15,7 @@ interface Product {
   purchase_price: number
   sale_price: number
   stock: number
+  image_url?: string | null
 }
 
 export function InventoryTable({ initialProducts }: { initialProducts: Product[] }) {
@@ -29,6 +30,13 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
   function handleEdit(product: Product) {
     setSelectedProduct(product)
     setIsModalOpen(true)
+  }
+
+  // Helper para formatear moneda en la tabla
+  const formatCOP = (value: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
+    }).format(value)
   }
 
   return (
@@ -48,6 +56,7 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
           <table className="w-full text-sm text-left">
             <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
               <tr>
+                <th className="px-6 py-4 w-16 text-center">Imagen</th> {/* 👈 Nueva columna */}
                 <th className="px-6 py-4">Producto</th>
                 <th className="px-6 py-4">Talla / Color</th>
                 <th className="px-6 py-4">Precios (C / V)</th>
@@ -58,26 +67,52 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
             <tbody className="divide-y divide-zinc-100">
               {initialProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                     No hay productos en el inventario. ¡Crea el primero!
                   </td>
                 </tr>
               ) : (
                 initialProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-zinc-50 transition-colors">
+                  <tr key={product.id} className="hover:bg-zinc-50 transition-colors group">
+                    
+                    {/* CELDA DE IMAGEN CON HOVER */}
+                    <td className="px-6 py-4 text-center">
+                      <div className="relative w-10 h-10 mx-auto rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center overflow-visible">
+                        {product.image_url ? (
+                          <>
+                            <img 
+                              src={product.image_url} 
+                              alt={product.name} 
+                              className="w-full h-full object-cover rounded-md cursor-zoom-in"
+                            />
+                            {/* Imagen flotante que aparece al pasar el mouse */}
+                            <div className="absolute hidden group-hover:block z-50 left-full ml-4 top-1/2 -translate-y-1/2 w-48 h-48 bg-white p-1 rounded-xl shadow-2xl border border-zinc-200 pointer-events-none">
+                              <img 
+                                src={product.image_url} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <ImageIcon className="text-zinc-400" size={16} />
+                        )}
+                      </div>
+                    </td>
+
                     <td className="px-6 py-4">
                       <div className="font-medium text-zinc-900">{product.name}</div>
                       <div className="text-zinc-500 text-xs">{product.brand} • {product.category}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="bg-zinc-100 text-zinc-700 px-2 py-1 rounded text-xs font-medium mr-2">
+                      <span className="bg-zinc-100 text-zinc-700 px-2 py-1 rounded text-xs font-medium mr-2 whitespace-nowrap">
                         Talla {product.size}
                       </span>
                       <span className="text-zinc-500 text-xs">{product.color}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-zinc-500 text-xs">C: ${product.purchase_price.toFixed(2)}</div>
-                      <div className="font-medium text-emerald-600">V: ${product.sale_price.toFixed(2)}</div>
+                      <div className="text-zinc-500 text-xs">C: {formatCOP(product.purchase_price)}</div>
+                      <div className="font-medium text-emerald-600">V: {formatCOP(product.sale_price)}</div>
                     </td>
                     <td className="px-6 py-4">
                       {product.stock < 3 ? (
