@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
-import { LayoutDashboard, Package, ShoppingCart, Settings } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User } from 'lucide-react'
 
 export default async function DashboardLayout({
   children,
@@ -25,17 +25,21 @@ export default async function DashboardLayout({
 
   if (!store) redirect('/onboarding')
 
+  // El host actual (localhost:3000 o tu dominio de vercel)
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const publicUrl = `${baseUrl}/tienda/${store.slug}`
+
   return (
     <div className="min-h-screen bg-zinc-50 flex">
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col hidden md:flex">
+      {/* SIDEBAR IZQUIERDO */}
+      <aside className="w-64 bg-white border-r border-zinc-200 flex-col hidden md:flex fixed inset-y-0 left-0 z-10">
         <div className="h-16 flex items-center px-6 border-b border-zinc-200">
           <span className="text-xl font-bold text-zinc-900 tracking-tight">Zapatería SaaS</span>
         </div>
         
         <div className="p-4 flex-1 space-y-1">
           <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-            {store.name}
+            Menú Principal
           </div>
           
           <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
@@ -52,25 +56,51 @@ export default async function DashboardLayout({
           </Link>
         </div>
 
-        <div className="p-4 border-t border-zinc-200">
-          <form action={logout}>
-            <Button variant="outline" className="w-full justify-start text-zinc-600" type="submit">
-              Cerrar Sesión
-            </Button>
-          </form>
+        <div className="p-4 border-t border-zinc-200 space-y-3">
+          <div className="px-3">
+            <p className="text-xs font-medium text-zinc-500 mb-1">Tu Catálogo Público</p>
+            <a 
+              href={publicUrl} 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium break-all group"
+            >
+              <ExternalLink size={16} className="shrink-0 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+              <span className="truncate">{store.slug}</span>
+            </a>
+          </div>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-8 md:hidden">
-          <span className="text-lg font-bold text-zinc-900">Zapatería SaaS</span>
-          <form action={logout}>
-            <Button variant="ghost" size="sm" type="submit">Salir</Button>
-          </form>
+      {/* CONTENIDO PRINCIPAL (Topbar + Main) */}
+      <div className="flex-1 flex flex-col md:ml-64 min-w-0">
+        {/* TOPBAR */}
+        <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-6 sticky top-0 z-10">
+          <div className="flex items-center gap-4 md:hidden">
+             <span className="text-lg font-bold text-zinc-900">Zapatería SaaS</span>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-full border border-emerald-100">
+            <span className="text-sm font-medium">Tienda:</span>
+            <span className="text-sm font-bold">{store.name}</span>
+          </div>
+
+          <div className="flex items-center gap-4 ml-auto">
+            <div className="hidden sm:flex items-center gap-2 text-sm text-zinc-600 bg-zinc-50 px-3 py-1.5 rounded-lg border border-zinc-200">
+              <User size={16} className="text-zinc-400" />
+              {user.email}
+            </div>
+            <form action={logout}>
+              <Button variant="ghost" size="sm" type="submit" className="text-red-600 hover:text-red-700 hover:bg-red-50 gap-2 px-3">
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Cerrar Sesión</span>
+              </Button>
+            </form>
+          </div>
         </header>
-        
-        <main className="flex-1 p-8 overflow-auto">
+
+        {/* ÁREA DE TRABAJO */}
+        <main className="flex-1 p-6 md:p-8 overflow-auto">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>
