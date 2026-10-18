@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ProductModal } from './ProductModal'
 import { Button } from '@/components/ui/Button'
-import { Plus, Edit2, AlertCircle, Image as ImageIcon } from 'lucide-react'
+import { Plus, Edit2, AlertCircle, Image as ImageIcon, Download } from 'lucide-react'
 
 interface Product {
   id: string
@@ -32,6 +32,29 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
     setIsModalOpen(true)
   }
 
+  // Función para exportar a CSV (Excel)
+  function exportToCSV() {
+    const headers = ['Nombre', 'Marca', 'Categoria', 'Talla', 'Color', 'Precio Compra', 'Precio Venta', 'Stock']
+    const rows = initialProducts.map(p => [
+      p.name, p.brand, p.category, p.size, p.color, p.purchase_price, p.sale_price, p.stock
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    // Añadimos el BOM \uFEFF para que Excel reconozca los acentos y la ñ
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'inventario_zapateria.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Helper para formatear moneda en la tabla
   const formatCOP = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -46,9 +69,14 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
           <h1 className="text-2xl font-bold text-zinc-900">Inventario</h1>
           <p className="text-zinc-500">Gestiona los productos de tu zapatería.</p>
         </div>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus size={18} /> Nuevo Producto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToCSV} className="gap-2 bg-white">
+            <Download size={18} /> Exportar CSV
+          </Button>
+          <Button onClick={handleCreate} className="gap-2">
+            <Plus size={18} /> Nuevo Producto
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
@@ -56,7 +84,7 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
           <table className="w-full text-sm text-left">
             <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
               <tr>
-                <th className="px-6 py-4 w-16 text-center">Imagen</th> {/* 👈 Nueva columna */}
+                <th className="px-6 py-4 w-16 text-center">Imagen</th>
                 <th className="px-6 py-4">Producto</th>
                 <th className="px-6 py-4">Talla / Color</th>
                 <th className="px-6 py-4">Precios (C / V)</th>

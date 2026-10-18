@@ -18,7 +18,6 @@ export default async function InventoryPage() {
 
   if (!store) redirect('/onboarding')
 
-  // Obtener solo los productos activos
   const { data: products } = await supabase
     .from('products')
     .select('*')
