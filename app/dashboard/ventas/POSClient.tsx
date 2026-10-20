@@ -5,8 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Search, Plus, Minus, Trash2, ShoppingBag, CheckCircle2 } from 'lucide-react'
+import { Search, Plus, Minus, Trash2, ShoppingBag, CheckCircle2, X, CreditCard, Banknote, ArrowRightLeft, Smartphone, Lock } from 'lucide-react'
+import { showError, showSuccess } from '@/components/ui/Alert'
+import { PlanLimits } from '@/lib/plans'
 
 interface Product {
   id: string
@@ -23,16 +24,24 @@ interface CartItem extends Product {
   quantity: number
 }
 
-export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
+const formatCOP = (value: number) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(value)
+}
+
+export function POSClient({ initialProducts, plan }: { initialProducts: Product[], plan: PlanLimits }) {
   const router = useRouter()
   const supabase = createClient()
   
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
 
-  // Filtrar productos por búsqueda
+  // Verificamos si el plan actual tiene permitido el módulo avanzado de pagos
+  const hasAdvancedPayments = plan.id !== 'free'
+
   const filteredProducts = useMemo(() => {
     if (!search) return initialProducts
     return initialProducts.filter(p => 
@@ -47,7 +56,7 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id)
       if (existing) {
-        if (existing.quantity >= product.stock) return prev // No superar el stock
+        if (existing.quantity >= product.stock) return prev
         return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)
       }
       return [...prev, { ...product, quantity: 1 }]
@@ -70,8 +79,8 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
     setCart(prev => prev.filter(item => item.id !== id))
   }
 
-  async function handleCheckout() {
-    if (cart.length === 0) return
+  // Función unificada para procesar la venta
+  async function processSale(paymentMethod: string) {
     setIsProcessing(true)
 
     const items = cart.map(item => ({
@@ -79,22 +88,31 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
       quantity: item.quantity
     }))
 
-    // Llamamos a la función RPC que creamos en el Paso 1
-    const { error } = await supabase.rpc('create_sale', { items })
+    const { error } = await supabase.rpc('create_sale', { 
+      items: items,
+      p_payment_method: paymentMethod
+    })
 
     if (error) {
-      alert('Error al procesar la venta: ' + error.message)
+      showError('Error al procesar la venta: ' + error.message)
       setIsProcessing(false)
       return
     }
 
-    // Éxito
     setCart([])
-    setSuccessMessage('¡Venta registrada con éxito!')
-    router.refresh() // Refresca los datos del servidor (stock actualizado)
-    
-    setTimeout(() => setSuccessMessage(''), 3000)
+    setIsPaymentModalOpen(false)
+    showSuccess('¡Venta registrada!', `El stock se ha actualizado correctamente.`)
+    router.refresh()
     setIsProcessing(false)
+  }
+
+  // Lógica al hacer clic en "Cobrar"
+  function handleCheckout() {
+    if (hasAdvancedPayments) {
+      setIsPaymentModalOpen(true) // Plan Pro/Premium: Abre el modal
+    } else {
+      processSale('efectivo') // Plan Free: Procesa directo en efectivo
+    }
   }
 
   return (
@@ -130,7 +148,7 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
               <h3 className="font-semibold text-zinc-900 line-clamp-2">{product.name}</h3>
               <p className="text-sm text-zinc-500 mb-4">{product.brand} • {product.color}</p>
               <div className="mt-auto flex items-center justify-between w-full">
-                <span className="text-lg font-bold text-emerald-600">${product.sale_price.toFixed(2)}</span>
+                <span className="text-lg font-bold text-emerald-600">{formatCOP(product.sale_price)}</span>
                 <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                   <Plus size={18} />
                 </div>
@@ -168,7 +186,7 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h4 className="font-medium text-sm text-zinc-900">{item.name}</h4>
-                    <p className="text-xs text-zinc-500">Talla {item.size} • ${item.sale_price.toFixed(2)}</p>
+                    <p className="text-xs text-zinc-500">Talla {item.size} • {formatCOP(item.sale_price)}</p>
                   </div>
                   <button onClick={() => removeFromCart(item.id)} className="text-zinc-400 hover:text-red-500">
                     <Trash2 size={16} />
@@ -185,7 +203,7 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
                     </button>
                   </div>
                   <span className="font-bold text-zinc-900">
-                    ${(item.sale_price * item.quantity).toFixed(2)}
+                    {formatCOP(item.sale_price * item.quantity)}
                   </span>
                 </div>
               </div>
@@ -196,7 +214,7 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
         <div className="p-4 border-t border-zinc-200 bg-zinc-50">
           <div className="flex justify-between items-center mb-4 text-lg">
             <span className="font-medium text-zinc-600">Total:</span>
-            <span className="font-bold text-2xl text-zinc-900">${total.toFixed(2)}</span>
+            <span className="font-bold text-2xl text-zinc-900">{formatCOP(total)}</span>
           </div>
           <Button 
             className="w-full h-12 text-lg" 
@@ -204,17 +222,43 @@ export function POSClient({ initialProducts }: { initialProducts: Product[] }) {
             disabled={cart.length === 0 || isProcessing}
             isLoading={isProcessing}
           >
-            Cobrar y Descontar Stock
+            {hasAdvancedPayments ? 'Cobrar (Seleccionar Pago)' : 'Cobrar (Efectivo)'}
           </Button>
-          
-          {successMessage && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 bg-emerald-50 p-3 rounded-lg font-medium">
-              <CheckCircle2 size={20} />
-              {successMessage}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* MODAL DE MÉTODOS DE PAGO (Solo Pro/Premium) */}
+      {isPaymentModalOpen && hasAdvancedPayments && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-zinc-100">
+              <h2 className="text-xl font-semibold text-zinc-900">Método de Pago</h2>
+              <button onClick={() => setIsPaymentModalOpen(false)} className="text-zinc-400 hover:text-zinc-600">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-center text-zinc-500 mb-6">Total a cobrar: <strong className="text-2xl text-zinc-900 block mt-1">{formatCOP(total)}</strong></p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => processSale('efectivo')} isLoading={isProcessing}>
+                  <Banknote size={24} /> Efectivo
+                </Button>
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => processSale('tarjeta')} isLoading={isProcessing}>
+                  <CreditCard size={24} /> Tarjeta
+                </Button>
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => processSale('transferencia')} isLoading={isProcessing}>
+                  <ArrowRightLeft size={24} /> Transferencia
+                </Button>
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => processSale('nequi')} isLoading={isProcessing}>
+                  <Smartphone size={24} /> Nequi / Bre-B
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
