@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { login } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
@@ -11,19 +11,22 @@ import { showError } from '@/components/ui/Alert'
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
-  async function handleSubmit(formData: FormData) {
+  // Forzamos a que el estado se reinicie si el componente vuelve a montarse
+  useEffect(() => {
+    setIsLoading(false)
+  }, [])
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setIsLoading(true)
     
-    // Llamamos a la server action
+    const formData = new FormData(e.currentTarget)
     const result = await login(formData)
     
-    // Si la acción devuelve un error, mostramos la alerta y quitamos el spinner
     if (result?.error) {
       showError(result.error)
       setIsLoading(false)
     }
-    // Si no hay error, la server action hará el redirect automáticamente 
-    // y no necesitamos hacer nada más aquí.
   }
 
   return (
@@ -34,9 +37,9 @@ export default function LoginPage() {
           <p className="text-sm text-zinc-500 text-center">Ingresa a tu panel de control</p>
         </CardHeader>
         <CardContent>
-          <form action={handleSubmit} className="flex flex-col gap-4">
-            <Input label="Correo electrónico" name="email" type="email" placeholder="tu@correo.com" required />
-            <Input label="Contraseña" name="password" type="password" placeholder="••••••••" required />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input label="Correo electrónico" name="email" type="email" placeholder="tu@correo.com" required disabled={isLoading} />
+            <Input label="Contraseña" name="password" type="password" placeholder="••••••••" required disabled={isLoading} />
             
             <Button type="submit" className="w-full mt-2" isLoading={isLoading}>
               {isLoading ? 'Ingresando...' : 'Entrar'}

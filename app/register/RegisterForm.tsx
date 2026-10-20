@@ -17,8 +17,11 @@ export function RegisterForm() {
   const selectedPlanId = searchParams.get('plan') || 'free'
   const planInfo = PLANS[selectedPlanId as keyof typeof PLANS] || PLANS.free
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setIsLoading(true)
+    
+    const formData = new FormData(e.currentTarget)
     formData.append('selected_plan', selectedPlanId)
 
     const result = await signup(formData)
@@ -36,7 +39,7 @@ export function RegisterForm() {
         <p className="text-sm text-zinc-500 text-center">Comienza a gestionar tu zapatería</p>
       </CardHeader>
       <CardContent>
-        <form action={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           
           {selectedPlanId !== 'free' && (
             <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm p-3 rounded-lg text-center font-medium mb-2">
@@ -45,8 +48,23 @@ export function RegisterForm() {
             </div>
           )}
 
-          <Input label="Correo electrónico" name="email" type="email" placeholder="tu@correo.com" required />
-          <Input label="Contraseña" name="password" type="password" placeholder="Mínimo 6 caracteres" required minLength={6} />
+          <Input 
+            label="Correo electrónico" 
+            name="email" 
+            type="email" 
+            placeholder="tu@correo.com" 
+            required 
+            disabled={isLoading} 
+          />
+          <Input 
+            label="Contraseña" 
+            name="password" 
+            type="password" 
+            placeholder="Mínimo 6 caracteres" 
+            required 
+            minLength={6} 
+            disabled={isLoading} 
+          />
           
           <Button type="submit" className="w-full mt-2" isLoading={isLoading}>
             {isLoading ? 'Registrando...' : 'Registrarme'}

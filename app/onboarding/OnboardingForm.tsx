@@ -1,9 +1,21 @@
 'use client'
 
 import { useState } from 'react'
+import { useFormStatus } from 'react-dom' // 👈 Hook clave para el spinner
 import { createStore } from './actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+
+// Subcomponente que detecta automáticamente si el formulario se está enviando
+function SubmitButton() {
+  const { pending } = useFormStatus()
+  
+  return (
+    <Button type="submit" className="w-full mt-4" isLoading={pending}>
+      {pending ? 'Creando tienda...' : 'Crear mi Tienda'}
+    </Button>
+  )
+}
 
 export function OnboardingForm({ errorMessage, selectedPlan }: { errorMessage?: string, selectedPlan?: string }) {
   const [name, setName] = useState('')
@@ -25,7 +37,6 @@ export function OnboardingForm({ errorMessage, selectedPlan }: { errorMessage?: 
 
   return (
     <form action={createStore} className="flex flex-col gap-4">
-      {/* Input oculto con el plan seleccionado */}
       <input type="hidden" name="plan_id" value={selectedPlan || 'free'} />
 
       <Input 
@@ -71,7 +82,8 @@ export function OnboardingForm({ errorMessage, selectedPlan }: { errorMessage?: 
         </p>
       )}
 
-      <Button type="submit" className="w-full mt-4">Crear mi Tienda</Button>
+      {/* Aquí usamos el componente que creamos arriba */}
+      <SubmitButton />
     </form>
   )
 }

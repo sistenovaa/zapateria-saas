@@ -74,7 +74,6 @@ export function InventoryTable({
           <h1 className="text-2xl font-bold text-zinc-900">Inventario</h1>
           <p className="text-zinc-500 mb-3">Gestiona los productos de tu zapatería.</p>
           
-          {/* BARRA DE PROGRESO (Solo se muestra si el plan tiene límite) */}
           {plan.maxProducts !== null && (
             <ProgressBar 
               current={initialProducts.length} 
@@ -84,11 +83,13 @@ export function InventoryTable({
           )}
         </div>
         <div className="flex gap-2">
-          {plan.features.includes('Exportación a Excel (CSV)') && (
+          {/* 👈 BOTÓN DE EXPORTAR CSV (Solo para planes de pago) */}
+          {plan.id !== 'free' && (
             <Button variant="outline" onClick={exportToCSV} className="gap-2 bg-white">
               <Download size={18} /> Exportar CSV
             </Button>
           )}
+          
           <Button onClick={handleCreate} className="gap-2">
             <Plus size={18} /> Nuevo Producto
           </Button>
