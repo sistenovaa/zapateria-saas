@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PLANS, PlanId } from '@/lib/plans'
 import { Button } from '@/components/ui/Button'
 import { Check } from 'lucide-react'
-import { PaymentModal } from '@/components/ui/PaymentModal' // 👈 Asegúrate de que esto esté importado
+import { PaymentModal } from '@/components/ui/PaymentModal'
 
 const formatCOP = (value: number) => {
   return new Intl.NumberFormat('es-CO', {
@@ -12,15 +12,28 @@ const formatCOP = (value: number) => {
   }).format(value)
 }
 
-export function PlansClient({ currentPlanId }: { currentPlanId: string }) {
-  const [selectedPlan, setSelectedPlan] = useState<{ id: PlanId, name: string } | null>(null)
+interface PlansClientProps {
+  currentPlanId: string
+  initialSelectedPlan?: string | null
+}
+
+export function PlansClient({ currentPlanId, initialSelectedPlan }: PlansClientProps) {
+  // Inicializamos el estado directamente con el plan que viene de la URL
+  const [selectedPlan, setSelectedPlan] = useState<{ id: PlanId, name: string } | null>(() => {
+    if (initialSelectedPlan) {
+      const plan = PLANS[initialSelectedPlan as keyof typeof PLANS]
+      if (plan) {
+        return { id: plan.id, name: plan.name }
+      }
+    }
+    return null
+  })
 
   const handlePlanClick = (planId: PlanId, planName: string) => {
     if (planId === 'free') {
       alert('Para volver al plan gratuito, contacta a soporte (esto cancela tu suscripción actual).')
       return
     }
-    // Esta línea abre el modal
     setSelectedPlan({ id: planId, name: planName })
   }
 
@@ -75,7 +88,6 @@ export function PlansClient({ currentPlanId }: { currentPlanId: string }) {
         })}
       </div>
 
-      {/* 👈 ESTO ES LO QUE FALTABA: El componente del modal */}
       <PaymentModal 
         isOpen={!!selectedPlan} 
         onClose={() => setSelectedPlan(null)} 

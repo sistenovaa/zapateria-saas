@@ -15,7 +15,8 @@ export async function login(formData: FormData) {
   const { error, data: authData } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    return redirect('/login?message=Credenciales incorrectas')
+    // Devolvemos el error para que el formulario lo capture con SweetAlert
+    return { error: error.message }
   }
 
   const { data: store } = await supabase
@@ -41,16 +42,15 @@ export async function signup(formData: FormData) {
     password: formData.get('password') as string,
   }
   
-  // Obtenemos el plan seleccionado del formulario
   const selectedPlan = formData.get('selected_plan') as string || 'free'
 
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    return redirect('/register?message=' + encodeURIComponent(error.message))
+    // Devolvemos el error para el formulario
+    return { error: error.message }
   }
 
-  // Redirigimos al onboarding pasando el plan en la URL
   revalidatePath('/', 'layout')
   redirect(`/onboarding?plan=${selectedPlan}`)
 }

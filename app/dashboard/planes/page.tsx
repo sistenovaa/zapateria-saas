@@ -2,11 +2,15 @@ export const instant = false;
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Info } from 'lucide-react'
 import Link from 'next/link'
 import { PlansClient } from './PlansClient'
 
-export default async function PlanesPage() {
+export default async function PlanesPage(props: { searchParams: Promise<{ pending?: string, plan?: string }> }) {
+  const searchParams = await props.searchParams;
+  const isPending = searchParams?.pending === 'true';
+  const preselectedPlan = searchParams?.plan || null;
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -30,8 +34,22 @@ export default async function PlanesPage() {
         </div>
       </div>
 
-      {/* Aquí llamamos al componente interactivo que tiene el modal */}
-      <PlansClient currentPlanId={store?.plan_id || 'free'} />
+      {/* AVISO DE CUENTA PENDIENTE */}
+      {isPending && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex items-start gap-3">
+          <Info className="mt-0.5 shrink-0" size={20} />
+          <div>
+            <h3 className="font-bold">¡Tu tienda fue creada con éxito!</h3>
+            <p className="text-sm">Para activar tu plan de pago, por favor realiza la transferencia y envíanos el comprobante. Mientras tanto, tu cuenta tiene las funciones del Plan Gratuito.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Le pasamos el plan preseleccionado al cliente para que abra el modal solo */}
+      <PlansClient 
+        currentPlanId={store?.plan_id || 'free'} 
+        initialSelectedPlan={preselectedPlan} 
+      />
     </div>
   )
 }

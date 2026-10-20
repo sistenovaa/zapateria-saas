@@ -133,7 +133,8 @@ export default async function LandingPage() {
                   variant={plan.highlighted ? 'primary' : 'outline'} 
                   className={`w-full h-12 text-base ${!plan.highlighted && 'bg-zinc-50'}`}
                 >
-                  {plan.price === 0 ? 'Empezar Gratis' : 'Elegir Plan'}
+                  {/* 👈 CAMBIO CLAVE: Cambiamos el texto del botón para mayor claridad */}
+                  {plan.price === 0 ? 'Empezar Gratis' : 'Registrarse y Pagar'}
                 </Button>
               </Link>
             </div>

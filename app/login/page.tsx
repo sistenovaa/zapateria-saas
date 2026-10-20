@@ -1,13 +1,31 @@
-export const instant = false;
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { login } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { showError } from '@/components/ui/Alert'
 
-export default async function LoginPage(props: { searchParams: Promise<{ message: string }> }) {
-  const searchParams = await props.searchParams;
-  
+export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false)
+
+  async function handleSubmit(formData: FormData) {
+    setIsLoading(true)
+    
+    // Llamamos a la server action
+    const result = await login(formData)
+    
+    // Si la acción devuelve un error, mostramos la alerta y quitamos el spinner
+    if (result?.error) {
+      showError(result.error)
+      setIsLoading(false)
+    }
+    // Si no hay error, la server action hará el redirect automáticamente 
+    // y no necesitamos hacer nada más aquí.
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
       <Card className="w-full max-w-md">
@@ -16,17 +34,13 @@ export default async function LoginPage(props: { searchParams: Promise<{ message
           <p className="text-sm text-zinc-500 text-center">Ingresa a tu panel de control</p>
         </CardHeader>
         <CardContent>
-          <form action={login} className="flex flex-col gap-4">
+          <form action={handleSubmit} className="flex flex-col gap-4">
             <Input label="Correo electrónico" name="email" type="email" placeholder="tu@correo.com" required />
             <Input label="Contraseña" name="password" type="password" placeholder="••••••••" required />
             
-            {searchParams?.message && (
-              <p className="text-sm text-red-500 text-center bg-red-50 p-2 rounded">
-                {searchParams.message}
-              </p>
-            )}
-
-            <Button type="submit" className="w-full mt-2">Entrar</Button>
+            <Button type="submit" className="w-full mt-2" isLoading={isLoading}>
+              {isLoading ? 'Ingresando...' : 'Entrar'}
+            </Button>
           </form>
           
           <div className="mt-6 text-center text-sm text-zinc-500">
