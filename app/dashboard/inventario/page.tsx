@@ -30,10 +30,10 @@ export default async function InventoryPage() {
 
   return (
     <div>
+      {/* Quitamos la propiedad storeId que causaba el error */}
       <InventoryTable 
         initialProducts={products || []} 
         plan={plan}
-        storeId={store.id}
       />
     </div>
   )
