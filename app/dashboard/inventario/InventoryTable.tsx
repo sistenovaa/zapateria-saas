@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { ProductModal } from './ProductModal'
 import { Button } from '@/components/ui/Button'
 import { Plus, Edit2, AlertCircle, Image as ImageIcon, Download } from 'lucide-react'
+import { ProgressBar } from '@/components/ui/ProgressBar'
+import { PlanLimits } from '@/lib/plans'
 
 interface Product {
   id: string
@@ -18,7 +20,13 @@ interface Product {
   image_url?: string | null
 }
 
-export function InventoryTable({ initialProducts }: { initialProducts: Product[] }) {
+export function InventoryTable({ 
+  initialProducts, 
+  plan 
+}: { 
+  initialProducts: Product[]
+  plan: PlanLimits
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
@@ -32,7 +40,6 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
     setIsModalOpen(true)
   }
 
-  // Función para exportar a CSV (Excel)
   function exportToCSV() {
     const headers = ['Nombre', 'Marca', 'Categoria', 'Talla', 'Color', 'Precio Compra', 'Precio Venta', 'Stock']
     const rows = initialProducts.map(p => [
@@ -44,7 +51,6 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n')
 
-    // Añadimos el BOM \uFEFF para que Excel reconozca los acentos y la ñ
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -55,7 +61,6 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
     document.body.removeChild(link)
   }
 
-  // Helper para formatear moneda en la tabla
   const formatCOP = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
@@ -64,15 +69,26 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div className="w-full sm:w-1/2">
           <h1 className="text-2xl font-bold text-zinc-900">Inventario</h1>
-          <p className="text-zinc-500">Gestiona los productos de tu zapatería.</p>
+          <p className="text-zinc-500 mb-3">Gestiona los productos de tu zapatería.</p>
+          
+          {/* BARRA DE PROGRESO (Solo se muestra si el plan tiene límite) */}
+          {plan.maxProducts !== null && (
+            <ProgressBar 
+              current={initialProducts.length} 
+              max={plan.maxProducts} 
+              label={`Uso de tu plan ${plan.name}`} 
+            />
+          )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToCSV} className="gap-2 bg-white">
-            <Download size={18} /> Exportar CSV
-          </Button>
+          {plan.features.includes('Exportación a Excel (CSV)') && (
+            <Button variant="outline" onClick={exportToCSV} className="gap-2 bg-white">
+              <Download size={18} /> Exportar CSV
+            </Button>
+          )}
           <Button onClick={handleCreate} className="gap-2">
             <Plus size={18} /> Nuevo Producto
           </Button>
@@ -102,24 +118,13 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
               ) : (
                 initialProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-zinc-50 transition-colors group">
-                    
-                    {/* CELDA DE IMAGEN CON HOVER */}
                     <td className="px-6 py-4 text-center">
                       <div className="relative w-10 h-10 mx-auto rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center overflow-visible">
                         {product.image_url ? (
                           <>
-                            <img 
-                              src={product.image_url} 
-                              alt={product.name} 
-                              className="w-full h-full object-cover rounded-md cursor-zoom-in"
-                            />
-                            {/* Imagen flotante que aparece al pasar el mouse */}
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-md cursor-zoom-in" />
                             <div className="absolute hidden group-hover:block z-50 left-full ml-4 top-1/2 -translate-y-1/2 w-48 h-48 bg-white p-1 rounded-xl shadow-2xl border border-zinc-200 pointer-events-none">
-                              <img 
-                                src={product.image_url} 
-                                alt={product.name} 
-                                className="w-full h-full object-cover rounded-lg"
-                              />
+                              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-lg" />
                             </div>
                           </>
                         ) : (
@@ -127,7 +132,6 @@ export function InventoryTable({ initialProducts }: { initialProducts: Product[]
                         )}
                       </div>
                     </td>
-
                     <td className="px-6 py-4">
                       <div className="font-medium text-zinc-900">{product.name}</div>
                       <div className="text-zinc-500 text-xs">{product.brand} • {product.category}</div>

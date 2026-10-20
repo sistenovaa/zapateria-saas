@@ -18,7 +18,6 @@ export async function login(formData: FormData) {
     return redirect('/login?message=Credenciales incorrectas')
   }
 
-  // Verificar si el usuario ya tiene una tienda creada
   const { data: store } = await supabase
     .from('stores')
     .select('id')
@@ -41,16 +40,19 @@ export async function signup(formData: FormData) {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   }
+  
+  // Obtenemos el plan seleccionado del formulario
+  const selectedPlan = formData.get('selected_plan') as string || 'free'
 
-  const { error, data: authData } = await supabase.auth.signUp(data)
+  const { error } = await supabase.auth.signUp(data)
 
   if (error) {
     return redirect('/register?message=' + encodeURIComponent(error.message))
   }
 
-  // Al registrarse, siempre va al onboarding
+  // Redirigimos al onboarding pasando el plan en la URL
   revalidatePath('/', 'layout')
-  redirect('/onboarding')
+  redirect(`/onboarding?plan=${selectedPlan}`)
 }
 
 export async function logout() {

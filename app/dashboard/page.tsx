@@ -4,8 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
-import { Package, ShoppingCart, AlertCircle, Link as LinkIcon, ExternalLink, TrendingUp, Trophy } from 'lucide-react'
+import { Package, ShoppingCart, AlertCircle, Link as LinkIcon, ExternalLink, TrendingUp, Trophy, Star } from 'lucide-react'
 import { SalesChart } from './SalesChart'
+import { ProgressBar } from '@/components/ui/ProgressBar'
+import { PLANS } from '@/lib/plans'
 
 const formatCOP = (value: number) => {
   return new Intl.NumberFormat('es-CO', {
@@ -16,12 +18,14 @@ const formatCOP = (value: number) => {
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   const { data: store } = await supabase
     .from('stores')
-    .select('id, slug, name')
+    .select('id, slug, name, plan_id')
     .eq('owner_id', user?.id)
     .single()
+
+  const plan = PLANS[store?.plan_id as keyof typeof PLANS] || PLANS.free
 
   // 1. Ventas de hoy
   const today = new Date()
@@ -48,7 +52,6 @@ export default async function DashboardPage() {
     .gte('created_at', sevenDaysAgo.toISOString())
 
   const chartDataMap = new Map()
-  // Inicializar los últimos 7 días en 0
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
@@ -56,7 +59,6 @@ export default async function DashboardPage() {
     chartDataMap.set(dateStr, 0)
   }
 
-  // Sumar ventas por día
   weekSales?.forEach(sale => {
     const d = new Date(sale.created_at)
     const dateStr = d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
@@ -81,6 +83,17 @@ export default async function DashboardPage() {
     .eq('is_active', true)
     .lt('stock', 3)
 
+  // 4. Ventas del mes (para el límite del plan)
+  const firstDayOfMonth = new Date()
+  firstDayOfMonth.setDate(1)
+  firstDayOfMonth.setHours(0, 0, 0, 0)
+
+  const { count: monthSalesCount } = await supabase
+    .from('sales')
+    .select('*', { count: 'exact', head: true })
+    .eq('store_id', store?.id)
+    .gte('created_at', firstDayOfMonth.toISOString())
+
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const publicUrl = `${baseUrl}/tienda/${store?.slug}`
 
@@ -89,6 +102,42 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">Bienvenido de nuevo</h1>
         <p className="text-zinc-500">Aquí tienes el resumen de tu tienda hoy.</p>
+      </div>
+
+      {/* TARJETA DE PLAN CON BARRAS DE PROGRESO */}
+      <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className={`p-3 rounded-lg ${store?.plan_id === 'free' ? 'bg-zinc-100 text-zinc-600' : 'bg-emerald-100 text-emerald-700'}`}>
+              <Star size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-zinc-900">Plan {plan.name}</h2>
+              <p className="text-sm text-zinc-500">{plan.description}</p>
+            </div>
+          </div>
+          {store?.plan_id === 'free' && (
+            <Link href="/dashboard/planes">
+              <Button variant="primary" className="whitespace-nowrap">Mejorar Plan</Button>
+            </Link>
+          )}
+        </div>
+
+        {/* BARRAS DE CONSUMO */}
+        {store?.plan_id === 'free' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-zinc-100">
+            <ProgressBar
+              current={totalProducts || 0}
+              max={plan.maxProducts}
+              label="Productos creados"
+            />
+            <ProgressBar
+              current={monthSalesCount || 0}
+              max={plan.maxSalesPerMonth}
+              label="Ventas este mes"
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -102,7 +151,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-zinc-500 mt-1">{todayCount} transacciones</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-zinc-500">Productos en Stock</CardTitle>
@@ -113,7 +162,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-zinc-500 mt-1">Pares activos</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-zinc-500">Alertas de Stock</CardTitle>
@@ -163,9 +212,9 @@ export default async function DashboardPage() {
             <LinkIcon size={20} /> Catálogo Público
           </h3>
           <p className="text-emerald-100 text-sm mb-4">Comparte este enlace con tus clientes para que vean tus productos.</p>
-          <a 
-            href={publicUrl} 
-            target="_blank" 
+          <a
+            href={publicUrl}
+            target="_blank"
             rel="noreferrer"
             className="bg-white text-emerald-700 hover:bg-zinc-50 px-4 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full"
           >

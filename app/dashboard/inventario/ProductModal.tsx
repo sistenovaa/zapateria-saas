@@ -32,6 +32,7 @@ export function ProductModal({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [imageUrl, setImageUrl] = useState(product?.image_url || '')
+  const [category, setCategory] = useState(product?.category || 'Hombre') // 👈 Estado para la categoría
   const supabase = createClient()
 
   if (!isOpen) return null
@@ -45,12 +46,10 @@ export function ProductModal({
     setIsLoading(true)
     setError('')
 
-    // Generar nombre único para el archivo
     const fileExt = file.name.split('.').pop()
     const fileName = `${Math.random()}-${Date.now()}.${fileExt}`
 
-    // Subir a Supabase Storage
-    const { error: uploadError, data } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('product-images')
       .upload(fileName, file)
 
@@ -60,7 +59,6 @@ export function ProductModal({
       return
     }
 
-    // Obtener la URL pública
     const { data: { publicUrl } } = supabase.storage
       .from('product-images')
       .getPublicUrl(fileName)
@@ -72,8 +70,6 @@ export function ProductModal({
   async function handleSubmit(formData: FormData) {
     setIsLoading(true)
     setError('')
-    
-    // Inyectar la URL de la imagen en los datos del formulario
     formData.append('image_url', imageUrl)
     
     const result = isEditing 
@@ -97,6 +93,10 @@ export function ProductModal({
     onClose()
   }
 
+  // Validar rangos de talla según la categoría
+  const minSize = category === 'Niño' ? 20 : 35
+  const maxSize = category === 'Niño' ? 35 : 45
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md my-8 animate-in fade-in zoom-in-95 duration-200">
@@ -111,7 +111,6 @@ export function ProductModal({
 
         <form action={handleSubmit} className="p-6 flex flex-col gap-4">
           
-          {/* Subida de Imagen */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-zinc-900">Foto del producto (Opcional)</label>
             <div className="flex items-center gap-4">
@@ -135,16 +134,30 @@ export function ProductModal({
             <Input label="Marca" name="brand" defaultValue={product?.brand} required />
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-zinc-900">Categoría</label>
-              <select name="category" defaultValue={product?.category || 'Hombre'} className="flex h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <select 
+                name="category" 
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="flex h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
                 <option value="Hombre">Hombre</option>
                 <option value="Mujer">Mujer</option>
+                <option value="Unisex">Unisex</option>
                 <option value="Niño">Niño</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Talla (35-45)" name="size" type="number" min="35" max="45" defaultValue={product?.size} required />
+            <Input 
+              label={`Talla (${minSize}-${maxSize})`} 
+              name="size" 
+              type="number" 
+              min={minSize} 
+              max={maxSize} 
+              defaultValue={product?.size} 
+              required 
+            />
             <Input label="Color" name="color" defaultValue={product?.color} required />
           </div>
 

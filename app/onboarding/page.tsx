@@ -5,8 +5,10 @@ import { redirect } from 'next/navigation'
 import { OnboardingForm } from './OnboardingForm'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 
-export default async function OnboardingPage(props: { searchParams: Promise<{ message: string }> }) {
+export default async function OnboardingPage(props: { searchParams: Promise<{ message?: string, plan?: string }> }) {
   const searchParams = await props.searchParams;
+  const selectedPlan = searchParams?.plan || 'free';
+  
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -34,7 +36,7 @@ export default async function OnboardingPage(props: { searchParams: Promise<{ me
           </p>
         </CardHeader>
         <CardContent>
-          <OnboardingForm errorMessage={searchParams?.message} />
+          <OnboardingForm errorMessage={searchParams?.message} selectedPlan={selectedPlan} />
         </CardContent>
       </Card>
     </div>

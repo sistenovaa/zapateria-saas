@@ -3,6 +3,7 @@ export const instant = false;
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { InventoryTable } from './InventoryTable'
+import { PLANS } from '@/lib/plans'
 
 export default async function InventoryPage() {
   const supabase = await createClient()
@@ -12,7 +13,7 @@ export default async function InventoryPage() {
 
   const { data: store } = await supabase
     .from('stores')
-    .select('id')
+    .select('id, plan_id')
     .eq('owner_id', user.id)
     .single()
 
@@ -25,9 +26,15 @@ export default async function InventoryPage() {
     .eq('is_active', true)
     .order('created_at', { ascending: false })
 
+  const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
+
   return (
     <div>
-      <InventoryTable initialProducts={products || []} />
+      <InventoryTable 
+        initialProducts={products || []} 
+        plan={plan}
+        storeId={store.id}
+      />
     </div>
   )
 }

@@ -16,18 +16,18 @@ export async function createStore(formData: FormData) {
   const slug = formData.get('slug') as string
   const phone = formData.get('phone') as string
   const address = formData.get('address') as string
+  const planId = formData.get('plan_id') as string || 'free'
 
-  // Insertar la tienda
   const { error } = await supabase.from('stores').insert({
     owner_id: user.id,
     name,
     slug,
     phone,
     address,
+    plan_id: planId,
   })
 
   if (error) {
-    // Si el slug ya existe (error 23505), enviamos un mensaje
     if (error.code === '23505') {
       return redirect('/onboarding?message=El enlace (slug) ya está en uso, intenta con otro.')
     }
