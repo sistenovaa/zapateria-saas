@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Package, ShoppingCart, AlertCircle, Link as LinkIcon, ExternalLink, TrendingUp, Trophy, Star } from 'lucide-react'
 import { SalesChart } from './SalesChart'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { CopyLinkButton } from '@/components/ui/CopyLinkButton' // 👈 Nuevo import
 import { PLANS } from '@/lib/plans'
 
 const formatCOP = (value: number) => {
@@ -18,7 +19,7 @@ const formatCOP = (value: number) => {
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
+  
   const { data: store } = await supabase
     .from('stores')
     .select('id, slug, name, plan_id')
@@ -104,7 +105,6 @@ export default async function DashboardPage() {
         <p className="text-zinc-500">Aquí tienes el resumen de tu tienda hoy.</p>
       </div>
 
-      {/* TARJETA DE PLAN CON BARRAS DE PROGRESO */}
       <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -123,19 +123,10 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* BARRAS DE CONSUMO */}
         {store?.plan_id === 'free' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-zinc-100">
-            <ProgressBar
-              current={totalProducts || 0}
-              max={plan.maxProducts}
-              label="Productos creados"
-            />
-            <ProgressBar
-              current={monthSalesCount || 0}
-              max={plan.maxSalesPerMonth}
-              label="Ventas este mes"
-            />
+            <ProgressBar current={totalProducts || 0} max={plan.maxProducts} label="Productos creados" />
+            <ProgressBar current={monthSalesCount || 0} max={plan.maxSalesPerMonth} label="Ventas este mes" />
           </div>
         )}
       </div>
@@ -151,7 +142,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-zinc-500 mt-1">{todayCount} transacciones</p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-zinc-500">Productos en Stock</CardTitle>
@@ -162,7 +153,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-zinc-500 mt-1">Pares activos</p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-zinc-500">Alertas de Stock</CardTitle>
@@ -212,14 +203,20 @@ export default async function DashboardPage() {
             <LinkIcon size={20} /> Catálogo Público
           </h3>
           <p className="text-emerald-100 text-sm mb-4">Comparte este enlace con tus clientes para que vean tus productos.</p>
-          <a
-            href={publicUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-white text-emerald-700 hover:bg-zinc-50 px-4 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full"
-          >
-            <ExternalLink size={16} /> Abrir Catálogo
-          </a>
+          <div className="flex flex-col gap-2">
+            <a 
+              href={publicUrl} 
+              target="_blank" 
+              rel="noreferrer"
+              className="bg-white text-emerald-700 hover:bg-zinc-50 px-4 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full"
+            >
+              <ExternalLink size={16} /> Abrir Catálogo
+            </a>
+            {/* 👈 AQUI EL NUEVO BOTÓN DE COPIAR */}
+            <div className="[&>button]:bg-white [&>button]:text-emerald-700 [&>button]:border-none [&>button:hover]:bg-zinc-50">
+              <CopyLinkButton url={publicUrl} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
