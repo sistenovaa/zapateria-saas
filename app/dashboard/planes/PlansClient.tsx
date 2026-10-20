@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { PLANS, PlanId } from '@/lib/plans'
 import { Button } from '@/components/ui/Button'
 import { Check } from 'lucide-react'
-import { PaymentModal } from '@/components/ui/PaymentModal'
+import { PaymentModal } from '@/components/ui/PaymentModal' // 👈 Asegúrate de que esto esté importado
 
 const formatCOP = (value: number) => {
   return new Intl.NumberFormat('es-CO', {
@@ -20,6 +20,7 @@ export function PlansClient({ currentPlanId }: { currentPlanId: string }) {
       alert('Para volver al plan gratuito, contacta a soporte (esto cancela tu suscripción actual).')
       return
     }
+    // Esta línea abre el modal
     setSelectedPlan({ id: planId, name: planName })
   }
 
@@ -74,6 +75,7 @@ export function PlansClient({ currentPlanId }: { currentPlanId: string }) {
         })}
       </div>
 
+      {/* 👈 ESTO ES LO QUE FALTABA: El componente del modal */}
       <PaymentModal 
         isOpen={!!selectedPlan} 
         onClose={() => setSelectedPlan(null)} 

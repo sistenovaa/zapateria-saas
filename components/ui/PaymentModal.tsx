@@ -35,7 +35,6 @@ export function PaymentModal({ isOpen, onClose, planName }: { isOpen: boolean, o
           </p>
 
           <div className="space-y-3">
-            {/* Nequi */}
             <div className="flex items-center justify-between bg-zinc-50 p-3 rounded-lg border border-zinc-200">
               <div>
                 <p className="text-xs text-zinc-500 font-medium">Nequi</p>
@@ -47,7 +46,6 @@ export function PaymentModal({ isOpen, onClose, planName }: { isOpen: boolean, o
               </Button>
             </div>
 
-            {/* Bre-B */}
             <div className="flex items-center justify-between bg-zinc-50 p-3 rounded-lg border border-zinc-200">
               <div>
                 <p className="text-xs text-zinc-500 font-medium">Bre-B</p>
