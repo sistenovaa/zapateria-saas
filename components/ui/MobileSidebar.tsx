@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History } from 'lucide-react'
 import { logout } from '@/app/auth/actions'
 import { Button } from './Button'
 
@@ -40,6 +40,10 @@ export function MobileSidebar({ store, userEmail }: { store: any, userEmail: str
               </Link>
               <Link href="/dashboard/ventas" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                 <ShoppingCart size={20} className="text-zinc-500" /> Punto de Venta
+              </Link>
+              {/* 👈 NUEVO BOTÓN DE HISTORIAL MÓVIL */}
+              <Link href="/dashboard/ventas/historial" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
+                <History size={20} className="text-zinc-500" /> Historial de Ventas
               </Link>
               <Link href="/dashboard/configuracion" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                 <Settings size={20} className="text-zinc-500" /> Configuración
