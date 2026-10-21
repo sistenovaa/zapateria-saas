@@ -12,17 +12,17 @@ export default async function OnboardingPage(props: { searchParams: Promise<{ me
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Proteger ruta
   if (!user) redirect('/login')
 
-  // Verificar si ya tiene una tienda
-  const { data: store } = await supabase
-    .from('stores')
+  // 👈 VERIFICAMOS SI YA ES UN EMPLEADO (DUEÑO O CAJERO)
+  const { data: employee } = await supabase
+    .from('employees')
     .select('id')
-    .eq('owner_id', user.id)
+    .eq('user_id', user.id)
     .single()
 
-  if (store) {
+  // Si ya está en la tabla de empleados, no debe estar aquí. Lo mandamos al dashboard.
+  if (employee) {
     redirect('/dashboard')
   }
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin' // 👈 Importamos el cliente admin
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -15,22 +16,24 @@ export async function login(formData: FormData) {
   const { error, data: authData } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    // Devolvemos el error para que el formulario lo capture con SweetAlert
     return { error: error.message }
   }
 
-  const { data: store } = await supabase
-    .from('stores')
+  // 👈 USAMOS EL CLIENTE ADMIN PARA EVITAR EL BLOQUEO DEL RLS EN EL LOGIN
+  const adminClient = createAdminClient()
+  
+  const { data: employee } = await adminClient
+    .from('employees')
     .select('id')
-    .eq('owner_id', authData.user.id)
-    .single()
+    .eq('user_id', authData.user.id)
+    .maybeSingle()
 
   revalidatePath('/', 'layout')
   
-  if (!store) {
-    redirect('/onboarding')
-  } else {
+  if (employee) {
     redirect('/dashboard')
+  } else {
+    redirect('/onboarding')
   }
 }
 
@@ -47,7 +50,6 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    // Devolvemos el error para el formulario
     return { error: error.message }
   }
 
