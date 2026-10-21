@@ -54,7 +54,6 @@ export default async function DashboardLayout({
             <ShoppingCart size={20} className="text-zinc-500" />
             Punto de Venta
           </Link>
-          {/* 👈 NUEVO BOTÓN DE HISTORIAL */}
           <Link href="/dashboard/ventas/historial" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
             <History size={20} className="text-zinc-500" />
             Historial de Ventas

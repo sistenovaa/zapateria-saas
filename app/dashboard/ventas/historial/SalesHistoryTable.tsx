@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Receipt, X, Calendar, ShoppingBag } from 'lucide-react'
+import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone } from 'lucide-react'
 
 interface SaleItem {
   id: string
@@ -17,6 +17,7 @@ interface Sale {
   id: string
   total: number
   created_at: string
+  payment_method: string
   sale_items: SaleItem[]
 }
 
@@ -26,12 +27,35 @@ const formatCOP = (value: number) => {
   }).format(value)
 }
 
-const formatDate = (dateString: string) => {
+// 👈 NUEVO SUBCOMPONENTE: Evita el error de Hydration esperando al cliente
+function FormattedDate({ dateString }: { dateString: string }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <span className="text-transparent bg-zinc-100 rounded px-2">Cargando...</span>
+  }
+
   const date = new Date(dateString)
-  return new Intl.DateTimeFormat('es-CO', {
+  const formatted = new Intl.DateTimeFormat('es-CO', {
     dateStyle: 'medium',
     timeStyle: 'short'
   }).format(date)
+
+  return <span>{formatted}</span>
+}
+
+const getPaymentMethodInfo = (method: string) => {
+  switch (method) {
+    case 'efectivo': return { label: 'Efectivo', icon: Banknote, color: 'text-emerald-600 bg-emerald-50' }
+    case 'tarjeta': return { label: 'Tarjeta', icon: CreditCard, color: 'text-blue-600 bg-blue-50' }
+    case 'transferencia': return { label: 'Transferencia', icon: ArrowRightLeft, color: 'text-purple-600 bg-purple-50' }
+    case 'nequi': return { label: 'Nequi / Bre-B', icon: Smartphone, color: 'text-pink-600 bg-pink-50' }
+    default: return { label: 'Efectivo', icon: Banknote, color: 'text-zinc-600 bg-zinc-50' }
+  }
 }
 
 export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
@@ -47,6 +71,7 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                 <tr>
                   <th className="px-6 py-4">Fecha y Hora</th>
                   <th className="px-6 py-4">Artículos</th>
+                  <th className="px-6 py-4">Método de Pago</th>
                   <th className="px-6 py-4">Total</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
@@ -54,31 +79,43 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
               <tbody className="divide-y divide-zinc-100">
                 {sales.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-zinc-500">
+                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
                       Aún no hay ventas registradas.
                     </td>
                   </tr>
                 ) : (
-                  sales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-zinc-900 font-medium">
-                        {formatDate(sale.created_at)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-zinc-100 text-zinc-700 px-2 py-1 rounded text-xs font-medium">
-                          {sale.sale_items.reduce((acc, item) => acc + item.quantity, 0)} pares
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-bold text-emerald-600">
-                        {formatCOP(sale.total)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Button variant="outline" size="sm" onClick={() => setSelectedSale(sale)} className="gap-2">
-                          <Receipt size={16} /> Ver Ticket
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
+                  sales.map((sale) => {
+                    const paymentInfo = getPaymentMethodInfo(sale.payment_method)
+                    const PaymentIcon = paymentInfo.icon
+
+                    return (
+                      <tr key={sale.id} className="hover:bg-zinc-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-zinc-900 font-medium">
+                          {/* 👈 Usamos el nuevo componente aquí */}
+                          <FormattedDate dateString={sale.created_at} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="bg-zinc-100 text-zinc-700 px-2 py-1 rounded text-xs font-medium">
+                            {sale.sale_items.reduce((acc, item) => acc + item.quantity, 0)} pares
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${paymentInfo.color}`}>
+                            <PaymentIcon size={14} />
+                            {paymentInfo.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-emerald-600">
+                          {formatCOP(sale.total)}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button variant="outline" size="sm" onClick={() => setSelectedSale(sale)} className="gap-2">
+                            <Receipt size={16} /> Ver Ticket
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
@@ -102,9 +139,21 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
             </div>
 
             <div className="p-6">
-              <div className="flex items-center gap-2 text-sm text-zinc-500 mb-6 pb-4 border-b border-zinc-100 border-dashed">
+              <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
                 <Calendar size={16} />
-                {formatDate(selectedSale.created_at)}
+                {/* 👈 También aquí */}
+                <FormattedDate dateString={selectedSale.created_at} />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-500 mb-6 pb-4 border-b border-zinc-100 border-dashed">
+                {(() => {
+                  const info = getPaymentMethodInfo(selectedSale.payment_method)
+                  const Icon = info.icon
+                  return (
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Icon size={16} /> Pagado con: {info.label}
+                    </span>
+                  )
+                })()}
               </div>
 
               <div className="space-y-4 mb-6">
