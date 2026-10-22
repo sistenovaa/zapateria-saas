@@ -20,11 +20,12 @@ export default async function HistorialPage() {
 
   if (!store) redirect('/onboarding')
 
-  // 👈 AGREGAMOS 'payment_details' AL SELECT
+  // 👈 Agregamos ticket_number y los campos de talla/color en los items
   const { data: sales } = await supabase
     .from('sales')
     .select(`
       id,
+      ticket_number,
       total,
       created_at,
       payment_method,
@@ -34,7 +35,9 @@ export default async function HistorialPage() {
         product_name,
         quantity,
         unit_price,
-        subtotal
+        subtotal,
+        size,
+        color
       )
     `)
     .eq('store_id', store.id)

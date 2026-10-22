@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone, Calculator } from 'lucide-react'
+import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone, Calculator, Printer } from 'lucide-react'
 
 interface SaleItem {
   id: string
@@ -11,14 +11,17 @@ interface SaleItem {
   quantity: number
   unit_price: number
   subtotal: number
+  size: number   // 👈 Agregamos
+  color: string  // 👈 Agregamos
 }
 
 interface Sale {
   id: string
+  ticket_number: number
   total: number
   created_at: string
   payment_method: string
-  payment_details: any | null // 👈 Agregamos el campo JSON
+  payment_details: any | null
   sale_items: SaleItem[]
 }
 
@@ -49,6 +52,7 @@ const getPaymentMethodInfo = (method: string) => {
     case 'transferencia': return { label: 'Transferencia', icon: ArrowRightLeft, color: 'text-purple-600 bg-purple-50' }
     case 'nequi': return { label: 'Nequi / Bre-B', icon: Smartphone, color: 'text-pink-600 bg-pink-50' }
     case 'mixto': return { label: 'Pago Mixto', icon: Calculator, color: 'text-amber-600 bg-amber-50' }
+    case 'credito': return { label: 'Crédito', icon: Banknote, color: 'text-zinc-600 bg-zinc-100' }
     default: return { label: 'Efectivo', icon: Banknote, color: 'text-zinc-600 bg-zinc-50' }
   }
 }
@@ -64,8 +68,8 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
             <table className="w-full text-sm text-left">
               <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
                 <tr>
+                  <th className="px-6 py-4">Ticket</th>
                   <th className="px-6 py-4">Fecha y Hora</th>
-                  <th className="px-6 py-4">Artículos</th>
                   <th className="px-6 py-4">Método de Pago</th>
                   <th className="px-6 py-4">Total</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
@@ -85,13 +89,11 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
 
                     return (
                       <tr key={sale.id} className="hover:bg-zinc-50 transition-colors">
+                        <td className="px-6 py-4 font-mono text-xs text-zinc-500">
+                          #{sale.ticket_number || '---'}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-zinc-900 font-medium">
                           <FormattedDate dateString={sale.created_at} />
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="bg-zinc-100 text-zinc-700 px-2 py-1 rounded text-xs font-medium">
-                            {sale.sale_items.reduce((acc, item) => acc + item.quantity, 0)} pares
-                          </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${paymentInfo.color}`}>
@@ -125,7 +127,7 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
             <div className="flex justify-between items-center p-6 border-b border-zinc-100 bg-zinc-50">
               <div className="flex items-center gap-2 text-zinc-900">
                 <Receipt size={20} className="text-emerald-600" />
-                <h2 className="font-semibold">Detalle de Venta</h2>
+                <h2 className="font-semibold">Ticket #{selectedSale.ticket_number}</h2>
               </div>
               <button onClick={() => setSelectedSale(null)} className="text-zinc-400 hover:text-zinc-600">
                 <X size={24} />
@@ -147,7 +149,6 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                       <span className="flex items-center gap-1.5 font-medium">
                         <Icon size={16} /> Pagado con: {info.label}
                       </span>
-                      {/* 👈 MOSTRAR DESGLOSE SI ES MIXTO */}
                       {selectedSale.payment_method === 'mixto' && selectedSale.payment_details && (
                         <div className="ml-6 mt-1 text-xs text-zinc-400">
                           <p>Efectivo: {formatCOP(selectedSale.payment_details.cash)}</p>
@@ -164,8 +165,9 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                   <div key={item.id} className="flex justify-between items-start text-sm">
                     <div className="flex-1">
                       <p className="font-medium text-zinc-900">{item.product_name}</p>
+                      {/* 👈 AQUÍ AGREGAMOS LA TALLA Y EL COLOR */}
                       <p className="text-zinc-500 text-xs">
-                        {item.quantity} x {formatCOP(item.unit_price)}
+                        Talla {item.size} • {item.color} • {item.quantity} x {formatCOP(item.unit_price)}
                       </p>
                     </div>
                     <span className="font-medium text-zinc-900">
@@ -183,7 +185,27 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
               </div>
             </div>
 
-            <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end">
+            <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-between gap-2">
+              <a 
+                href={`/dashboard/ventas/ticket/${selectedSale.id}?size=80`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex-1"
+              >
+                <Button className="w-full gap-2" variant="outline">
+                  <Printer size={18} /> Imprimir (80mm)
+                </Button>
+              </a>
+              <a 
+                href={`/dashboard/ventas/ticket/${selectedSale.id}?size=58`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex-1"
+              >
+                <Button className="w-full gap-2" variant="outline">
+                  <Printer size={18} /> Imprimir (58mm)
+                </Button>
+              </a>
               <Button onClick={() => setSelectedSale(null)}>Cerrar</Button>
             </div>
           </div>
