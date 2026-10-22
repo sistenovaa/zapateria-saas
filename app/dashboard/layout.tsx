@@ -1,12 +1,12 @@
 export const instant = false;
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin' // 👈
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
-import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User, Settings, History } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User, Settings, History, BookOpen } from 'lucide-react'
 import { MobileSidebar } from '@/components/ui/MobileSidebar'
 
 export default async function DashboardLayout({
@@ -19,7 +19,6 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login')
 
-  // 👈 USAMOS EL ADMIN CLIENT PARA LEER SIN PROBLEMAS DE RLS
   const adminClient = createAdminClient()
 
   const { data: employee } = await adminClient
@@ -67,6 +66,13 @@ export default async function DashboardLayout({
           {isOwner && (
             <Link href="/dashboard/inventario" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Package size={20} className="text-zinc-500" /> Inventario
+            </Link>
+          )}
+
+          {/* 👈 NUEVO BOTÓN DE KARDEX (Solo Dueño) */}
+          {isOwner && (
+            <Link href="/dashboard/inventario/kardex" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
+              <BookOpen size={20} className="text-zinc-500" /> Kardex
             </Link>
           )}
 

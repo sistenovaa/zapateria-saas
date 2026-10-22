@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History, BookOpen } from 'lucide-react'
 import { logout } from '@/app/auth/actions'
 import { Button } from './Button'
 
-// Agregamos isOwner a las propiedades
 export function MobileSidebar({ store, userEmail, isOwner }: { store: any, userEmail: string, isOwner: boolean }) {
   const [isOpen, setIsOpen] = useState(false)
 
@@ -43,6 +42,12 @@ export function MobileSidebar({ store, userEmail, isOwner }: { store: any, userE
               {isOwner && (
                 <Link href="/dashboard/inventario" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <Package size={20} className="text-zinc-500" /> Inventario
+                </Link>
+              )}
+
+              {isOwner && (
+                <Link href="/dashboard/inventario/kardex" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
+                  <BookOpen size={20} className="text-zinc-500" /> Kardex
                 </Link>
               )}
 
