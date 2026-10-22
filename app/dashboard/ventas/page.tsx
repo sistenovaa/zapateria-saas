@@ -19,16 +19,23 @@ export default async function VentasPage() {
 
   if (!store) redirect('/onboarding')
 
+  const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
+
+  // Traemos los productos con sus variantes que tengan stock
   const { data: products } = await supabase
     .from('products')
-    .select('*')
+    .select(`
+      *,
+      variants:product_variants (*)
+    `)
     .eq('store_id', store.id)
     .eq('is_active', true)
-    .gt('stock', 0)
     .order('name', { ascending: true })
 
-  // Obtenemos los límites del plan actual
-  const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
+  // Filtramos para dejar solo los productos que tengan al menos una variante con stock > 0
+  const productsWithStock = (products || []).filter(p => 
+    p.variants && p.variants.some((v: any) => v.stock > 0)
+  )
 
   return (
     <div className="h-full flex flex-col">
@@ -37,9 +44,8 @@ export default async function VentasPage() {
         <p className="text-zinc-500">Registra nuevas ventas y actualiza el inventario en tiempo real.</p>
       </div>
       
-      {/* Pasamos el plan al componente del POS */}
       <POSClient 
-        initialProducts={products || []} 
+        initialProducts={productsWithStock} 
         plan={plan} 
       />
     </div>

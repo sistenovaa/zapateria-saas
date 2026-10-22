@@ -19,20 +19,33 @@ export default async function InventoryPage() {
 
   if (!store) redirect('/onboarding')
 
-  const { data: products } = await supabase
+  const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
+
+  // Hacemos la consulta de productos
+  const { data: productsData, error } = await supabase
     .from('products')
-    .select('*')
+    .select(`
+      *,
+      variants:product_variants (*)
+    `)
     .eq('store_id', store.id)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
 
-  const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
+  if (error) {
+    console.error("Error cargando inventario:", error)
+  }
+
+  // 👈 Aseguramos que 'variants' siempre sea un array y no un objeto o null
+  const products = (productsData || []).map(p => ({
+    ...p,
+    variants: Array.isArray(p.variants) ? p.variants : (p.variants ? [p.variants] : [])
+  }))
 
   return (
     <div>
-      {/* Quitamos la propiedad storeId que causaba el error */}
       <InventoryTable 
-        initialProducts={products || []} 
+        initialProducts={products} 
         plan={plan}
       />
     </div>
