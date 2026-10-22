@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Search, Plus, Minus, Trash2, ShoppingBag, X, CreditCard, Banknote, ArrowRightLeft, Smartphone, Calculator } from 'lucide-react'
+import { Search, Plus, Minus, Trash2, ShoppingBag, X, CreditCard, Banknote, ArrowRightLeft, Smartphone, Calculator, Users } from 'lucide-react'
 import { showError, showSuccess } from '@/components/ui/Alert'
 import { PlanLimits } from '@/lib/plans'
 
@@ -32,13 +32,26 @@ interface CartItem {
   quantity: number
 }
 
+interface Customer {
+  id: string
+  name: string
+}
+
 const formatCOP = (value: number) => {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
   }).format(value)
 }
 
-export function POSClient({ initialProducts, plan }: { initialProducts: Product[], plan: PlanLimits }) {
+export function POSClient({ 
+  initialProducts, 
+  plan, 
+  customers 
+}: { 
+  initialProducts: Product[], 
+  plan: PlanLimits,
+  customers: Customer[]
+}) {
   const router = useRouter()
   const supabase = createClient()
   
@@ -54,6 +67,10 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
   const [isMixedPaymentModalOpen, setIsMixedPaymentModalOpen] = useState(false)
   const [mixedCash, setMixedCash] = useState<string>('')
   const [mixedCard, setMixedCard] = useState<string>('')
+
+  // 👈 Nuevos estados para Crédito
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false)
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('')
 
   const hasAdvancedPayments = plan.id !== 'free'
   const isPremium = plan.id === 'premium'
@@ -109,7 +126,7 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
     setCart(prev => prev.filter(item => item.variant.id !== variantId))
   }
 
-  async function processSale(paymentMethod: string, paymentDetails: any = null) {
+  async function processSale(paymentMethod: string, paymentDetails: any = null, customerId: string | null = null, isCredit: boolean = false) {
     setIsProcessing(true)
 
     const items = cart.map(item => ({
@@ -120,7 +137,9 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
     const { error } = await supabase.rpc('create_sale', { 
       items: items,
       p_payment_method: paymentMethod,
-      p_payment_details: paymentDetails
+      p_payment_details: paymentDetails,
+      p_customer_id: customerId,
+      p_is_credit: isCredit
     })
 
     if (error) {
@@ -132,12 +151,12 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
     setCart([])
     setIsPaymentModalOpen(false)
     setIsMixedPaymentModalOpen(false)
+    setIsCreditModalOpen(false)
     showSuccess('¡Venta registrada!', `El stock se ha actualizado correctamente.`)
     router.refresh()
     setIsProcessing(false)
   }
 
-  // Lógica para confirmar el pago mixto
   function handleMixedPayment() {
     const cash = parseFloat(mixedCash) || 0
     const card = parseFloat(mixedCard) || 0
@@ -152,12 +171,16 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
       return
     }
 
-    const details = {
-      cash: cash,
-      card: card
-    }
-
+    const details = { cash: cash, card: card }
     processSale('mixto', details)
+  }
+
+  function handleCreditPayment() {
+    if (!selectedCustomerId) {
+      showError('Debes seleccionar un cliente para la venta a crédito.')
+      return
+    }
+    processSale('credito', null, selectedCustomerId, true)
   }
 
   function handleCheckout() {
@@ -281,7 +304,7 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
         </div>
       </div>
 
-      {/* MODAL PARA SELECCIONAR VARIANTE (Solo Premium) */}
+      {/* MODAL PARA SELECCIONAR VARIANTE */}
       {productToSelect && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -317,7 +340,7 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
         </div>
       )}
 
-      {/* MODAL DE MÉTODOS DE PAGO (Solo Pro/Premium) */}
+      {/* MODAL DE MÉTODOS DE PAGO */}
       {isPaymentModalOpen && hasAdvancedPayments && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -346,22 +369,37 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
                 </Button>
               </div>
 
-              {/* BOTÓN DE PAGO MIXTO (Solo Premium) */}
               {isPremium && (
-                <div className="mt-3">
-                  <Button 
-                    variant="secondary" 
-                    className="w-full h-12 gap-2 bg-zinc-900 hover:bg-zinc-800 text-white"
-                    onClick={() => {
-                      setIsPaymentModalOpen(false)
-                      setIsMixedPaymentModalOpen(true)
-                      setMixedCash('')
-                      setMixedCard('')
-                    }}
-                  >
-                    <Calculator size={18} /> Pago Mixto (Efectivo + Tarjeta)
-                  </Button>
-                </div>
+                <>
+                  <div className="mt-3">
+                    <Button 
+                      variant="secondary" 
+                      className="w-full h-12 gap-2 bg-zinc-900 hover:bg-zinc-800 text-white"
+                      onClick={() => {
+                        setIsPaymentModalOpen(false)
+                        setIsMixedPaymentModalOpen(true)
+                        setMixedCash('')
+                        setMixedCard('')
+                      }}
+                    >
+                      <Calculator size={18} /> Pago Mixto (Efectivo + Tarjeta)
+                    </Button>
+                  </div>
+
+                  <div className="mt-3">
+                    <Button 
+                      variant="secondary" 
+                      className="w-full h-12 gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() => {
+                        setIsPaymentModalOpen(false)
+                        setIsCreditModalOpen(true)
+                        setSelectedCustomerId('')
+                      }}
+                    >
+                      <Users size={18} /> Venta a Crédito (Cuentas por Cobrar)
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -402,7 +440,6 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
                   />
                 </div>
 
-                {/* Indicador de cuánto falta por pagar */}
                 <div className="bg-zinc-50 p-3 rounded-lg flex justify-between items-center">
                   <span className="text-sm font-medium text-zinc-600">Falta por cubrir:</span>
                   <span className={`font-bold ${
@@ -423,6 +460,51 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
                   disabled={(parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) !== total}
                 >
                   Confirmar Pago Mixto
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 👈 MODAL DE VENTA A CRÉDITO */}
+      {isCreditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-zinc-100">
+              <h2 className="text-xl font-semibold text-zinc-900">Venta a Crédito</h2>
+              <button onClick={() => setIsCreditModalOpen(false)} className="text-zinc-400 hover:text-zinc-600">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-center text-zinc-500 mb-6">Total a fiar: <strong className="text-2xl text-zinc-900 block mt-1">{formatCOP(total)}</strong></p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-zinc-900 block mb-1">Selecciona al Cliente</label>
+                  <select 
+                    value={selectedCustomerId}
+                    onChange={(e) => setSelectedCustomerId(e.target.value)}
+                    className="flex h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Selecciona un cliente...</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Button 
+                  className="w-full h-12 bg-amber-600 hover:bg-amber-700" 
+                  onClick={handleCreditPayment}
+                  isLoading={isProcessing}
+                  disabled={!selectedCustomerId}
+                >
+                  Confirmar Venta a Crédito
                 </Button>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History, BookOpen, Truck, ShoppingBag } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History, BookOpen, Truck, ShoppingBag, Users } from 'lucide-react'
 import { logout } from '@/app/auth/actions'
 import { Button } from './Button'
 
@@ -62,6 +62,13 @@ export function MobileSidebar({ store, userEmail, isOwner }: { store: any, userE
               {isOwner && (
                 <Link href="/dashboard/proveedores" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <Truck size={20} className="text-zinc-500" /> Proveedores
+                </Link>
+              )}
+
+                            {/* 👈 NUEVO BOTÓN DE CLIENTES MÓVIL */}
+              {isOwner && (
+                <Link href="/dashboard/clientes" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
+                  <Users size={20} className="text-zinc-500" /> Clientes
                 </Link>
               )}
 

@@ -1,6 +1,7 @@
 export const instant = false;
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { POSClient } from './POSClient'
 import { PLANS } from '@/lib/plans'
@@ -11,18 +12,29 @@ export default async function VentasPage() {
 
   if (!user) redirect('/login')
 
-  const { data: store } = await supabase
+  const adminClient = createAdminClient()
+
+  // 1. Obtener tienda y rol
+  const { data: employee } = await adminClient
+    .from('employees')
+    .select('role, store_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!employee) redirect('/onboarding')
+
+  const { data: store } = await adminClient
     .from('stores')
     .select('id, plan_id')
-    .eq('owner_id', user.id)
+    .eq('id', employee.store_id)
     .single()
 
   if (!store) redirect('/onboarding')
 
   const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
 
-  // Traemos los productos con sus variantes que tengan stock
-  const { data: products } = await supabase
+  // 2. Traer productos con sus variantes
+  const { data: products } = await adminClient
     .from('products')
     .select(`
       *,
@@ -32,10 +44,16 @@ export default async function VentasPage() {
     .eq('is_active', true)
     .order('name', { ascending: true })
 
-  // Filtramos para dejar solo los productos que tengan al menos una variante con stock > 0
   const productsWithStock = (products || []).filter(p => 
     p.variants && p.variants.some((v: any) => v.stock > 0)
   )
+
+  // 3. Traer clientes para el módulo de créditos
+  const { data: customers } = await adminClient
+    .from('customers')
+    .select('id, name')
+    .eq('store_id', store.id)
+    .order('name', { ascending: true })
 
   return (
     <div className="h-full flex flex-col">
@@ -47,6 +65,7 @@ export default async function VentasPage() {
       <POSClient 
         initialProducts={productsWithStock} 
         plan={plan} 
+        customers={customers || []}
       />
     </div>
   )
