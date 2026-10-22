@@ -3,7 +3,7 @@ export const instant = false;
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { MapPin, Phone } from 'lucide-react'
-import { ProductCard } from './ProductCard' // 👈 Importamos el nuevo componente
+import { ProductCard } from './ProductCard'
 
 interface Variant {
   id: string
@@ -32,10 +32,10 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const { slug } = await params
   const supabase = await createClient()
 
-  // 1. Obtener datos de la tienda
+  // 1. Obtener datos de la tienda (incluyendo el branding)
   const { data: store } = await supabase
     .from('stores')
-    .select('name, phone, address')
+    .select('id, name, phone, address, logo_url, primary_color, description')
     .eq('slug', slug)
     .single()
 
@@ -43,14 +43,14 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     notFound()
   }
 
-  // 2. Obtener productos (Con la nueva estructura de variantes)
+  // 2. Obtener productos con sus variantes
   const { data: products } = await supabase
     .from('products')
     .select(`
       *,
       variants:product_variants (*)
     `)
-    .eq('store_id', (await supabase.from('stores').select('id').eq('slug', slug).single()).data?.id)
+    .eq('store_id', store.id)
     .eq('is_active', true)
     .order('name', { ascending: true })
 
@@ -59,12 +59,27 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     p.variants && p.variants.some((v: any) => v.stock > 0)
   )
 
+  const accentColor = store.primary_color || '#10b981'
+
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Header de la Tienda */}
+      {/* Header de la Tienda con Branding */}
       <header className="bg-white border-b border-zinc-200">
         <div className="max-w-5xl mx-auto px-4 py-12 flex flex-col items-center text-center">
-          <h1 className="text-4xl font-extrabold text-zinc-900 mb-4">{store.name}</h1>
+          
+          {/* Logo */}
+          {store.logo_url && (
+            <div className="w-24 h-24 mb-6 rounded-2xl overflow-hidden shadow-sm border border-zinc-100 bg-white">
+              <img src={store.logo_url} alt={store.name} className="w-full h-full object-contain" />
+            </div>
+          )}
+
+          <h1 className="text-4xl font-extrabold text-zinc-900 mb-2">{store.name}</h1>
+          
+          {/* Descripción */}
+          {store.description && (
+            <p className="text-zinc-500 max-w-2xl mb-6">{store.description}</p>
+          )}
           
           <div className="flex flex-col sm:flex-row items-center gap-4 text-zinc-500 text-sm">
             {store.address && (
@@ -101,6 +116,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 key={product.id} 
                 product={product as Product} 
                 phone={store.phone || ''} 
+                accentColor={accentColor} // 👈 Pasamos el color al componente de la tarjeta
               />
             ))}
           </div>

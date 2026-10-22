@@ -26,14 +26,20 @@ const formatCOP = (value: number) => {
   }).format(value)
 }
 
-export function ProductCard({ product, phone }: { product: Product, phone: string }) {
+export function ProductCard({ 
+  product, 
+  phone, 
+  accentColor 
+}: { 
+  product: Product
+  phone: string
+  accentColor: string 
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
 
-  // Limpiar el teléfono (por si el dueño puso espacios o guiones)
   const cleanPhone = phone.replace(/\D/g, '')
 
-  // Generar el mensaje de WhatsApp
   const generateWhatsAppUrl = (variant?: Variant) => {
     let message = `¡Hola! 👋 Vi en su catálogo el producto *"${product.name}"*`
     
@@ -46,11 +52,9 @@ export function ProductCard({ product, phone }: { product: Product, phone: strin
   }
 
   const handleConsultClick = () => {
-    // Si solo hay 1 variante, mandamos directo a WhatsApp
     if (product.variants.length === 1) {
       window.open(generateWhatsAppUrl(product.variants[0]), '_blank')
     } else {
-      // Si hay varias, abrimos el modal para que elija
       setIsModalOpen(true)
     }
   }
@@ -79,11 +83,16 @@ export function ProductCard({ product, phone }: { product: Product, phone: strin
           <div className="mt-auto flex items-end justify-between">
             <div>
               <p className="text-xs text-zinc-500">Precio</p>
-              <p className="text-2xl font-bold text-emerald-600">{formatCOP(product.sale_price)}</p>
+              {/* 👈 APLICAMOS EL COLOR DINÁMICO AL PRECIO */}
+              <p className="text-2xl font-bold" style={{ color: accentColor }}>
+                {formatCOP(product.sale_price)}
+              </p>
             </div>
+            {/* 👈 APLICAMOS EL COLOR DINÁMICO AL BOTÓN */}
             <button 
               onClick={handleConsultClick}
-              className="flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm"
+              className="flex items-center gap-2 text-white px-3 py-2 rounded-lg font-medium transition-opacity hover:opacity-90 text-sm shadow-sm"
+              style={{ backgroundColor: accentColor }}
             >
               <MessageCircle size={18} />
               Consultar
@@ -114,9 +123,14 @@ export function ProductCard({ product, phone }: { product: Product, phone: strin
                     onClick={() => setSelectedVariant(variant)}
                     className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
                       selectedVariant?.id === variant.id 
-                        ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' 
-                        : 'border-zinc-200 hover:border-emerald-300 hover:bg-zinc-50'
+                        ? 'ring-1' 
+                        : 'border-zinc-200 hover:bg-zinc-50'
                     } ${variant.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    style={selectedVariant?.id === variant.id ? { 
+                      borderColor: accentColor, 
+                      backgroundColor: `${accentColor}15`, // Color con transparencia
+                      '--tw-ring-color': accentColor 
+                    } as any : {}}
                     disabled={variant.stock === 0}
                   >
                     <span className="text-lg font-bold text-zinc-900">Talla {variant.size}</span>
@@ -139,8 +153,9 @@ export function ProductCard({ product, phone }: { product: Product, phone: strin
                   }
                 }}
                 className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-white transition-colors ${
-                  selectedVariant ? 'bg-[#25D366] hover:bg-[#20bd5a]' : 'bg-zinc-300 cursor-not-allowed'
+                  selectedVariant ? 'hover:opacity-90' : 'bg-zinc-300 cursor-not-allowed'
                 }`}
+                style={selectedVariant ? { backgroundColor: accentColor } : {}}
               >
                 <MessageCircle size={20} /> Consultar por WhatsApp
               </a>
