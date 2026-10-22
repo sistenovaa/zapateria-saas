@@ -3,33 +3,31 @@ export const instant = false;
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { BadgeCheck, Store, Calendar, Phone, Mail } from 'lucide-react'
+import { BadgeCheck, Store, Phone, Mail, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { PlanSelector } from './PlanSelector'
+import { DateDisplay } from './DateDisplay' // 👈 Importamos el nuevo componente
 
-const formatDate = (dateString: string) => {
-  return new Intl.DateTimeFormat('es-CO', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(new Date(dateString))
+const getDaysLeft = (endDate: string | null) => {
+  if (!endDate) return null
+  const now = new Date()
+  const end = new Date(endDate)
+  
+  const diffTime = end.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  return diffDays
 }
 
 export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 1. Seguridad Básica: Si no hay usuario, fuera.
   if (!user) redirect('/login')
 
-  // 2. Verificamos si es Súper-Admin usando la función de la base de datos
   const { data: isSuperAdmin } = await supabase.rpc('is_super_admin')
+  if (!isSuperAdmin) redirect('/dashboard')
 
-  // Si no es Súper-Admin, lo expulsamos al dashboard normal
-  if (!isSuperAdmin) {
-    redirect('/dashboard')
-  }
-
-  // 3. Usamos el Admin Client para traer TODAS las tiendas (saltando RLS)
   const adminClient = createAdminClient()
   const { data: stores } = await adminClient
     .from('stores')
@@ -84,19 +82,23 @@ export default async function AdminPage() {
                   <th className="px-6 py-4">Tienda</th>
                   <th className="px-6 py-4">Contacto</th>
                   <th className="px-6 py-4">Plan Actual</th>
-                  <th className="px-6 py-4">Registro</th>
+                  <th className="px-6 py-4">Último Pago</th>
+                  <th className="px-6 py-4">Días Restantes</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-700/50">
                 {stores?.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                       No hay tiendas registradas todavía.
                     </td>
                   </tr>
                 ) : (
                   stores?.map((store) => {
+                    const daysLeft = getDaysLeft(store.subscription_ends_at)
+                    const hasPendingPayment = store.plan_id !== 'free' && (!store.subscription_ends_at || (daysLeft !== null && daysLeft <= 0))
+                    
                     return (
                       <tr key={store.id} className="hover:bg-zinc-700/30 transition-colors">
                         <td className="px-6 py-4">
@@ -126,11 +128,24 @@ export default async function AdminPage() {
                             {store.plan_id}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-zinc-400">
-                          <div className="flex items-center gap-2 text-xs">
-                            <Calendar size={14} />
-                            {formatDate(store.created_at)}
-                          </div>
+                        <td className="px-6 py-4 text-zinc-400 text-xs">
+                          {/* 👈 AQUÍ USAMOS EL NUEVO COMPONENTE */}
+                          <DateDisplay dateString={store.subscription_started_at} />
+                        </td>
+                        <td className="px-6 py-4">
+                          {store.plan_id === 'free' ? (
+                            <span className="text-zinc-500 text-xs italic">N/A</span>
+                          ) : hasPendingPayment ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold text-red-600 bg-red-50">
+                              <Clock size={12} /> Vencido
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                              daysLeft && daysLeft <= 5 ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'
+                            }`}>
+                              <Clock size={12} /> {daysLeft} días
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <PlanSelector 

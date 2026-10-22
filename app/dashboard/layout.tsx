@@ -42,6 +42,9 @@ export default async function DashboardLayout({
   }
 
   const isOwner = employee.role === 'owner'
+  const isPro = store.plan_id === 'pro' || store.plan_id === 'premium'
+  const isPremium = store.plan_id === 'premium'
+  
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const publicUrl = `${baseUrl}/tienda/${store.slug}`
 
@@ -52,7 +55,7 @@ export default async function DashboardLayout({
           <span className="text-xl font-bold text-zinc-900 tracking-tight">Zapatería SaaS</span>
         </div>
         
-        <div className="p-4 flex-1 space-y-1">
+        <div className="p-4 flex-1 space-y-1 overflow-y-auto">
           <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
             Menú {isOwner ? 'Dueño' : 'Cajero'}
           </div>
@@ -69,27 +72,29 @@ export default async function DashboardLayout({
             </Link>
           )}
 
-          {isOwner && (
+          {/* KARDEX: Solo Pro y Premium */}
+          {isOwner && isPro && (
             <Link href="/dashboard/inventario/kardex" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <BookOpen size={20} className="text-zinc-500" /> Kardex
             </Link>
           )}
-                    {/* 👈 NUEVO BOTÓN DE COMPRAS */}
-          {isOwner && (
+
+          {/* COMPRAS: Solo Pro y Premium */}
+          {isOwner && isPro && (
             <Link href="/dashboard/compras" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <ShoppingBag size={20} className="text-zinc-500" /> Compras
             </Link>
           )}
 
-          {/* 👈 NUEVO BOTÓN DE PROVEEDORES */}
-          {isOwner && (
+          {/* PROVEEDORES: Solo Pro y Premium */}
+          {isOwner && isPro && (
             <Link href="/dashboard/proveedores" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Truck size={20} className="text-zinc-500" /> Proveedores
             </Link>
           )}
 
-                    {/* 👈 NUEVO BOTÓN DE CLIENTES */}
-          {isOwner && (
+          {/* CLIENTES: Solo Premium */}
+          {isOwner && isPremium && (
             <Link href="/dashboard/clientes" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Users size={20} className="text-zinc-500" /> Clientes
             </Link>
@@ -126,7 +131,7 @@ export default async function DashboardLayout({
       <div className="flex-1 flex flex-col md:ml-64 min-w-0">
         <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
           <div className="flex items-center gap-2">
-            <MobileSidebar store={store} userEmail={user.email || ''} isOwner={isOwner} />
+            <MobileSidebar store={store} userEmail={user.email || ''} isOwner={isOwner} isPro={isPro} isPremium={isPremium} />
             <span className="text-lg font-bold text-zinc-900 md:hidden">Zapatería SaaS</span>
           </div>
           
@@ -153,7 +158,7 @@ export default async function DashboardLayout({
         </header>
 
         <main className="flex-1 p-4 md:p-8 overflow-auto">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl mx-auto h-full">
             {children}
           </div>
         </main>

@@ -1,23 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronDown, Loader2, Settings2, CalendarDays } from 'lucide-react'
 import { showSuccess, showError } from '@/components/ui/Alert'
+import { updateStorePlan } from './actions' // 👈 Importamos la Server Action
 
 export function PlanSelector({ storeId, currentPlanId }: { storeId: string, currentPlanId: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
-  // Estados para el control de la fecha
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [paymentDate, setPaymentDate] = useState<string>(
-    new Date().toISOString().split('T')[0] // Por defecto, la fecha de hoy (YYYY-MM-DD)
+    new Date().toISOString().split('T')[0]
   )
 
   const router = useRouter()
-  const supabase = createClient()
 
   const plans = [
     { id: 'free', name: 'Gratis' },
@@ -33,45 +31,28 @@ export function PlanSelector({ storeId, currentPlanId }: { storeId: string, curr
     }
     
     if (planId === 'free') {
-      // Si pasa a free, se actualiza de inmediato sin preguntar fecha
-      updatePlanInDb(planId, null)
+      updatePlan(planId, null)
     } else {
-      // Si es un plan de pago, abrimos el selector de fecha
       setSelectedPlan(planId)
     }
   }
 
-  async function updatePlanInDb(newPlanId: string, dateStr: string | null) {
+  async function updatePlan(newPlanId: string, dateStr: string | null) {
     setIsLoading(true)
     setIsOpen(false)
     setSelectedPlan(null)
 
-    let subscriptionEndsAt = null
+    const result = await updateStorePlan(storeId, newPlanId, dateStr)
 
-    // Si hay una fecha de pago, le sumamos 30 días para el vencimiento
-    if (dateStr) {
-      const date = new Date(dateStr + 'T12:00:00') // Añadimos hora para evitar desfase de zona horaria
-      date.setDate(date.getDate() + 30)
-      subscriptionEndsAt = date.toISOString()
-    }
-
-    const { error } = await supabase
-      .from('stores')
-      .update({ 
-        plan_id: newPlanId,
-        subscription_ends_at: subscriptionEndsAt 
-      })
-      .eq('id', storeId)
-
-    if (error) {
-      showError('Error al actualizar el plan: ' + error.message)
+    if (result.error) {
+      showError('Error al actualizar el plan: ' + result.error)
       setIsLoading(false)
       return
     }
 
     showSuccess('Plan actualizado', `El plan se ha activado correctamente.`)
     router.refresh()
-    setIsLoading(false)
+    setTimeout(() => setIsLoading(false), 1000)
   }
 
   return (
@@ -87,7 +68,6 @@ export function PlanSelector({ storeId, currentPlanId }: { storeId: string, curr
         <ChevronDown size={14} className="opacity-70" />
       </button>
 
-      {/* MENÚ DESPLEGABLE DE PLANES */}
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
@@ -115,7 +95,6 @@ export function PlanSelector({ storeId, currentPlanId }: { storeId: string, curr
         </>
       )}
 
-      {/* MODAL PARA REGISTRAR LA FECHA DE PAGO (Solo aparece si eligen Pro o Premium) */}
       {selectedPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-150">
@@ -126,7 +105,7 @@ export function PlanSelector({ storeId, currentPlanId }: { storeId: string, curr
               </h3>
               <p className="text-sm text-zinc-400 mb-4">
                 Has seleccionado el plan <strong className="text-white">{selectedPlan.toUpperCase()}</strong>. 
-                Ingresa la fecha en la que recibiste el dinero de tu cliente.
+                Ingresa la fecha en la que recibiste el dinero.
               </p>
 
               <div className="flex flex-col gap-1.5 mb-6">
@@ -147,7 +126,7 @@ export function PlanSelector({ storeId, currentPlanId }: { storeId: string, curr
                   Cancelar
                 </button>
                 <button 
-                  onClick={() => updatePlanInDb(selectedPlan, paymentDate)}
+                  onClick={() => updatePlan(selectedPlan, paymentDate)}
                   className="px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
                 >
                   Guardar y Activar

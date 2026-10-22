@@ -6,7 +6,19 @@ import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink
 import { logout } from '@/app/auth/actions'
 import { Button } from './Button'
 
-export function MobileSidebar({ store, userEmail, isOwner }: { store: any, userEmail: string, isOwner: boolean }) {
+export function MobileSidebar({ 
+  store, 
+  userEmail, 
+  isOwner, 
+  isPro, 
+  isPremium 
+}: { 
+  store: any, 
+  userEmail: string, 
+  isOwner: boolean, 
+  isPro: boolean, 
+  isPremium: boolean 
+}) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -45,28 +57,29 @@ export function MobileSidebar({ store, userEmail, isOwner }: { store: any, userE
                 </Link>
               )}
 
-              {isOwner && (
+              {/* KARDEX: Solo Pro y Premium */}
+              {isOwner && isPro && (
                 <Link href="/dashboard/inventario/kardex" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <BookOpen size={20} className="text-zinc-500" /> Kardex
                 </Link>
               )}
 
-                            {/* 👈 NUEVO BOTÓN DE COMPRAS MÓVIL */}
-              {isOwner && (
+              {/* COMPRAS: Solo Pro y Premium */}
+              {isOwner && isPro && (
                 <Link href="/dashboard/compras" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <ShoppingBag size={20} className="text-zinc-500" /> Compras
                 </Link>
               )}
 
-              {/* 👈 NUEVO BOTÓN DE PROVEEDORES MÓVIL */}
-              {isOwner && (
+              {/* PROVEEDORES: Solo Pro y Premium */}
+              {isOwner && isPro && (
                 <Link href="/dashboard/proveedores" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <Truck size={20} className="text-zinc-500" /> Proveedores
                 </Link>
               )}
 
-                            {/* 👈 NUEVO BOTÓN DE CLIENTES MÓVIL */}
-              {isOwner && (
+              {/* CLIENTES: Solo Premium */}
+              {isOwner && isPremium && (
                 <Link href="/dashboard/clientes" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <Users size={20} className="text-zinc-500" /> Clientes
                 </Link>
