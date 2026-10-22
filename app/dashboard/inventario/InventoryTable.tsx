@@ -35,8 +35,6 @@ export function InventoryTable({
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  
-  // Estado para el modal de ver variantes
   const [viewVariantsProduct, setViewVariantsProduct] = useState<Product | null>(null)
 
   function handleCreate() {
@@ -63,9 +61,10 @@ export function InventoryTable({
       }
     })
     
+    // 👈 CORRECCIÓN AQUÍ: Tipamos 'cell' explícitamente como any o string
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map((cell: any) => `"${cell}"`).join(','))
     ].join('\n')
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -88,7 +87,6 @@ export function InventoryTable({
     return product.variants?.reduce((acc, v) => acc + v.stock, 0) || 0
   }
 
-  // Función para obtener el resumen de variantes (ej: "3 tallas (36-38)")
   const getVariantsSummary = (product: Product) => {
     if (!product.variants || product.variants.length === 0) return 'Sin variantes'
     
@@ -177,7 +175,6 @@ export function InventoryTable({
                         <div className="text-zinc-500 text-xs">{product.brand} • {product.category}</div>
                       </td>
                       
-                      {/* NUEVA COLUMNA DE VARIANTES RESUMIDA */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <span className="text-zinc-600 text-xs font-medium">
@@ -225,7 +222,6 @@ export function InventoryTable({
         </div>
       </div>
 
-      {/* Modal de Edición */}
       {isModalOpen && (
         <ProductModal 
           key={selectedProduct?.id || 'new'} 
@@ -236,7 +232,6 @@ export function InventoryTable({
         />
       )}
 
-      {/* MODAL PARA VER EL DETALLE DE LAS VARIANTES */}
       {viewVariantsProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
