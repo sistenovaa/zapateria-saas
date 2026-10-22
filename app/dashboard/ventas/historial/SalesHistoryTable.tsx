@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone } from 'lucide-react'
+import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone, Calculator } from 'lucide-react'
 
 interface SaleItem {
   id: string
@@ -18,6 +18,7 @@ interface Sale {
   total: number
   created_at: string
   payment_method: string
+  payment_details: any | null // 👈 Agregamos el campo JSON
   sale_items: SaleItem[]
 }
 
@@ -27,22 +28,15 @@ const formatCOP = (value: number) => {
   }).format(value)
 }
 
-// 👈 NUEVO SUBCOMPONENTE: Evita el error de Hydration esperando al cliente
 function FormattedDate({ dateString }: { dateString: string }) {
   const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return <span className="text-transparent bg-zinc-100 rounded px-2">Cargando...</span>
-  }
+  if (!mounted) return <span className="text-transparent bg-zinc-100 rounded px-2">Cargando...</span>
 
   const date = new Date(dateString)
   const formatted = new Intl.DateTimeFormat('es-CO', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
+    dateStyle: 'medium', timeStyle: 'short'
   }).format(date)
 
   return <span>{formatted}</span>
@@ -54,6 +48,7 @@ const getPaymentMethodInfo = (method: string) => {
     case 'tarjeta': return { label: 'Tarjeta', icon: CreditCard, color: 'text-blue-600 bg-blue-50' }
     case 'transferencia': return { label: 'Transferencia', icon: ArrowRightLeft, color: 'text-purple-600 bg-purple-50' }
     case 'nequi': return { label: 'Nequi / Bre-B', icon: Smartphone, color: 'text-pink-600 bg-pink-50' }
+    case 'mixto': return { label: 'Pago Mixto', icon: Calculator, color: 'text-amber-600 bg-amber-50' }
     default: return { label: 'Efectivo', icon: Banknote, color: 'text-zinc-600 bg-zinc-50' }
   }
 }
@@ -91,7 +86,6 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                     return (
                       <tr key={sale.id} className="hover:bg-zinc-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-zinc-900 font-medium">
-                          {/* 👈 Usamos el nuevo componente aquí */}
                           <FormattedDate dateString={sale.created_at} />
                         </td>
                         <td className="px-6 py-4">
@@ -141,17 +135,26 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
             <div className="p-6">
               <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
                 <Calendar size={16} />
-                {/* 👈 También aquí */}
                 <FormattedDate dateString={selectedSale.created_at} />
               </div>
-              <div className="flex items-center gap-2 text-sm text-zinc-500 mb-6 pb-4 border-b border-zinc-100 border-dashed">
+              
+              <div className="flex flex-col gap-1 text-sm text-zinc-500 mb-6 pb-4 border-b border-zinc-100 border-dashed">
                 {(() => {
                   const info = getPaymentMethodInfo(selectedSale.payment_method)
                   const Icon = info.icon
                   return (
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Icon size={16} /> Pagado con: {info.label}
-                    </span>
+                    <>
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Icon size={16} /> Pagado con: {info.label}
+                      </span>
+                      {/* 👈 MOSTRAR DESGLOSE SI ES MIXTO */}
+                      {selectedSale.payment_method === 'mixto' && selectedSale.payment_details && (
+                        <div className="ml-6 mt-1 text-xs text-zinc-400">
+                          <p>Efectivo: {formatCOP(selectedSale.payment_details.cash)}</p>
+                          <p>Tarjeta: {formatCOP(selectedSale.payment_details.card)}</p>
+                        </div>
+                      )}
+                    </>
                   )
                 })()}
               </div>

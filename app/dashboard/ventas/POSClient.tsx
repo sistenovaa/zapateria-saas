@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Search, Plus, Minus, Trash2, ShoppingBag, X, CreditCard, Banknote, ArrowRightLeft, Smartphone, Barcode } from 'lucide-react'
+import { Search, Plus, Minus, Trash2, ShoppingBag, X, CreditCard, Banknote, ArrowRightLeft, Smartphone, Calculator } from 'lucide-react'
 import { showError, showSuccess } from '@/components/ui/Alert'
 import { PlanLimits } from '@/lib/plans'
 
@@ -47,8 +47,13 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
   const [isProcessing, setIsProcessing] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   
-  // Estado para el modal de selección de variante (Solo Premium)
+  // Estado para el modal de selección de variante
   const [productToSelect, setProductToSelect] = useState<Product | null>(null)
+
+  // Estados para el Pago Mixto
+  const [isMixedPaymentModalOpen, setIsMixedPaymentModalOpen] = useState(false)
+  const [mixedCash, setMixedCash] = useState<string>('')
+  const [mixedCard, setMixedCard] = useState<string>('')
 
   const hasAdvancedPayments = plan.id !== 'free'
   const isPremium = plan.id === 'premium'
@@ -63,15 +68,12 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
 
   const total = cart.reduce((acc, item) => acc + (item.product.sale_price * item.quantity), 0)
 
-  // Lógica al hacer clic en un producto
   function handleProductClick(product: Product) {
     if (!product.variants || product.variants.length === 0) return
 
     if (isPremium) {
-      // Si es Premium, abrimos el modal para elegir la talla
       setProductToSelect(product)
     } else {
-      // Si es Básico/Free, asumimos que solo hay 1 variante y la agregamos directo
       const variant = product.variants[0]
       if (variant.stock > 0) {
         addToCart(product, variant)
@@ -83,13 +85,11 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
     setCart(prev => {
       const existing = prev.find(item => item.variant.id === variant.id)
       if (existing) {
-        if (existing.quantity >= variant.stock) return prev // No superar el stock
+        if (existing.quantity >= variant.stock) return prev
         return prev.map(item => item.variant.id === variant.id ? { ...item, quantity: item.quantity + 1 } : item)
       }
       return [...prev, { product, variant, quantity: 1 }]
     })
-    
-    // Cerramos el modal si estaba abierto
     setProductToSelect(null)
   }
 
@@ -109,10 +109,9 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
     setCart(prev => prev.filter(item => item.variant.id !== variantId))
   }
 
-  async function processSale(paymentMethod: string) {
+  async function processSale(paymentMethod: string, paymentDetails: any = null) {
     setIsProcessing(true)
 
-    // Ahora enviamos el variant_id a la base de datos
     const items = cart.map(item => ({
       variant_id: item.variant.id,
       quantity: item.quantity
@@ -120,7 +119,8 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
 
     const { error } = await supabase.rpc('create_sale', { 
       items: items,
-      p_payment_method: paymentMethod 
+      p_payment_method: paymentMethod,
+      p_payment_details: paymentDetails
     })
 
     if (error) {
@@ -131,9 +131,33 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
 
     setCart([])
     setIsPaymentModalOpen(false)
+    setIsMixedPaymentModalOpen(false)
     showSuccess('¡Venta registrada!', `El stock se ha actualizado correctamente.`)
     router.refresh()
     setIsProcessing(false)
+  }
+
+  // Lógica para confirmar el pago mixto
+  function handleMixedPayment() {
+    const cash = parseFloat(mixedCash) || 0
+    const card = parseFloat(mixedCard) || 0
+    
+    if (cash + card !== total) {
+      showError('La suma de los pagos debe ser exactamente igual al total.')
+      return
+    }
+
+    if (cash < 0 || card < 0) {
+      showError('Los valores no pueden ser negativos.')
+      return
+    }
+
+    const details = {
+      cash: cash,
+      card: card
+    }
+
+    processSale('mixto', details)
   }
 
   function handleCheckout() {
@@ -188,11 +212,6 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
               </button>
             )
           })}
-          {filteredProducts.length === 0 && (
-            <div className="col-span-full py-12 text-center text-zinc-500">
-              No se encontraron productos disponibles.
-            </div>
-          )}
         </div>
       </div>
 
@@ -324,6 +343,86 @@ export function POSClient({ initialProducts, plan }: { initialProducts: Product[
                 </Button>
                 <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => processSale('nequi')} isLoading={isProcessing}>
                   <Smartphone size={24} /> Nequi / Bre-B
+                </Button>
+              </div>
+
+              {/* BOTÓN DE PAGO MIXTO (Solo Premium) */}
+              {isPremium && (
+                <div className="mt-3">
+                  <Button 
+                    variant="secondary" 
+                    className="w-full h-12 gap-2 bg-zinc-900 hover:bg-zinc-800 text-white"
+                    onClick={() => {
+                      setIsPaymentModalOpen(false)
+                      setIsMixedPaymentModalOpen(true)
+                      setMixedCash('')
+                      setMixedCard('')
+                    }}
+                  >
+                    <Calculator size={18} /> Pago Mixto (Efectivo + Tarjeta)
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE PAGO MIXTO */}
+      {isMixedPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-zinc-100">
+              <h2 className="text-xl font-semibold text-zinc-900">Pago Mixto</h2>
+              <button onClick={() => setIsMixedPaymentModalOpen(false)} className="text-zinc-400 hover:text-zinc-600">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-center text-zinc-500 mb-6">Total a cobrar: <strong className="text-2xl text-zinc-900 block mt-1">{formatCOP(total)}</strong></p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-zinc-900 block mb-1">Monto en Efectivo</label>
+                  <Input 
+                    type="number" 
+                    placeholder="0" 
+                    value={mixedCash}
+                    onChange={(e) => setMixedCash(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-zinc-900 block mb-1">Monto en Tarjeta</label>
+                  <Input 
+                    type="number" 
+                    placeholder="0" 
+                    value={mixedCard}
+                    onChange={(e) => setMixedCard(e.target.value)}
+                  />
+                </div>
+
+                {/* Indicador de cuánto falta por pagar */}
+                <div className="bg-zinc-50 p-3 rounded-lg flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-600">Falta por cubrir:</span>
+                  <span className={`font-bold ${
+                    (parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) === total 
+                      ? 'text-emerald-600' 
+                      : 'text-red-500'
+                  }`}>
+                    {formatCOP(total - ((parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0)))}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Button 
+                  className="w-full h-12" 
+                  onClick={handleMixedPayment}
+                  isLoading={isProcessing}
+                  disabled={(parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) !== total}
+                >
+                  Confirmar Pago Mixto
                 </Button>
               </div>
             </div>

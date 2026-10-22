@@ -20,7 +20,7 @@ export default async function HistorialPage() {
 
   if (!store) redirect('/onboarding')
 
-  // 👈 AQUÍ ESTABA EL ERROR: Faltaba agregar 'payment_method' en el select
+  // 👈 AGREGAMOS 'payment_details' AL SELECT
   const { data: sales } = await supabase
     .from('sales')
     .select(`
@@ -28,6 +28,7 @@ export default async function HistorialPage() {
       total,
       created_at,
       payment_method,
+      payment_details,
       sale_items (
         id,
         product_name,
