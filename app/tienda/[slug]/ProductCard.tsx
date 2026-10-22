@@ -36,6 +36,7 @@ export function ProductCard({
   accentColor: string 
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImageOpen, setIsImageOpen] = useState(false) // 👈 Estado para el Zoom
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
 
   const cleanPhone = phone.replace(/\D/g, '')
@@ -63,15 +64,18 @@ export function ProductCard({
     <>
       <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
         {/* Imagen */}
-        <div className="h-48 bg-zinc-100 flex items-center justify-center relative overflow-hidden">
+        <div 
+          className="h-56 bg-zinc-50 flex items-center justify-center relative overflow-hidden cursor-zoom-in p-2"
+          onClick={() => product.image_url && setIsImageOpen(true)}
+        >
           {product.image_url ? (
             <img 
               src={product.image_url} 
               alt={product.name} 
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" 
+              className="w-full h-full object-contain transition-transform duration-300 hover:scale-105" 
             />
           ) : (
-            <span className="text-zinc-400 font-medium">Foto del calzado</span>
+            <span className="text-zinc-400 font-medium">Sin foto</span>
           )}
         </div>
         
@@ -83,12 +87,10 @@ export function ProductCard({
           <div className="mt-auto flex items-end justify-between">
             <div>
               <p className="text-xs text-zinc-500">Precio</p>
-              {/* 👈 APLICAMOS EL COLOR DINÁMICO AL PRECIO */}
               <p className="text-2xl font-bold" style={{ color: accentColor }}>
                 {formatCOP(product.sale_price)}
               </p>
             </div>
-            {/* 👈 APLICAMOS EL COLOR DINÁMICO AL BOTÓN */}
             <button 
               onClick={handleConsultClick}
               className="flex items-center gap-2 text-white px-3 py-2 rounded-lg font-medium transition-opacity hover:opacity-90 text-sm shadow-sm"
@@ -100,6 +102,23 @@ export function ProductCard({
           </div>
         </div>
       </div>
+
+      {/* MODAL DE IMAGEN AMPLIADA (LIGHTBOX) */}
+      {isImageOpen && product.image_url && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setIsImageOpen(false)}
+        >
+          <button className="absolute top-4 right-4 text-white/70 hover:text-white">
+            <X size={32} />
+          </button>
+          <img 
+            src={product.image_url} 
+            alt={product.name} 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+          />
+        </div>
+      )}
 
       {/* MODAL PARA SELECCIONAR TALLA */}
       {isModalOpen && (
@@ -128,7 +147,7 @@ export function ProductCard({
                     } ${variant.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     style={selectedVariant?.id === variant.id ? { 
                       borderColor: accentColor, 
-                      backgroundColor: `${accentColor}15`, // Color con transparencia
+                      backgroundColor: `${accentColor}15`,
                       '--tw-ring-color': accentColor 
                     } as any : {}}
                     disabled={variant.stock === 0}
