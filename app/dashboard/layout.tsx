@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
-import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User, Settings, History, BookOpen, Truck } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User, Settings, History, BookOpen, Truck, ShoppingBag } from 'lucide-react'
 import { MobileSidebar } from '@/components/ui/MobileSidebar'
 
 export default async function DashboardLayout({
@@ -72,6 +72,12 @@ export default async function DashboardLayout({
           {isOwner && (
             <Link href="/dashboard/inventario/kardex" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <BookOpen size={20} className="text-zinc-500" /> Kardex
+            </Link>
+          )}
+                    {/* 👈 NUEVO BOTÓN DE COMPRAS */}
+          {isOwner && (
+            <Link href="/dashboard/compras" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
+              <ShoppingBag size={20} className="text-zinc-500" /> Compras
             </Link>
           )}
 
