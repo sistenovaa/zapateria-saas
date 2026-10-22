@@ -11,7 +11,6 @@ import { showError } from '@/components/ui/Alert'
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
-  // Forzamos a que el estado se reinicie si el componente vuelve a montarse
   useEffect(() => {
     setIsLoading(false)
   }, [])
@@ -46,11 +45,17 @@ export default function LoginPage() {
             </Button>
           </form>
           
-          <div className="mt-6 text-center text-sm text-zinc-500">
-            ¿No tienes cuenta?{' '}
-            <Link href="/register" className="text-emerald-600 hover:underline font-medium">
-              Regístrate aquí
+          {/* 👈 ENLACES DE RECUPERACIÓN Y REGISTRO */}
+          <div className="mt-6 flex flex-col items-center gap-2 text-sm text-zinc-500">
+            <Link href="/forgot-password" className="text-zinc-600 hover:text-emerald-600 hover:underline font-medium transition-colors">
+              ¿Olvidaste tu contraseña?
             </Link>
+            <div>
+              ¿No tienes cuenta?{' '}
+              <Link href="/register" className="text-emerald-600 hover:underline font-medium">
+                Regístrate aquí
+              </Link>
+            </div>
           </div>
         </CardContent>
       </Card>

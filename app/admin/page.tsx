@@ -1,9 +1,9 @@
 export const instant = false;
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { ADMIN_EMAILS } from '@/lib/admin'
-import { BadgeCheck, Store, Calendar, Phone, Mail, Clock } from 'lucide-react'
+import { BadgeCheck, Store, Calendar, Phone, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { PlanSelector } from './PlanSelector'
 
@@ -14,25 +14,24 @@ const formatDate = (dateString: string) => {
   }).format(new Date(dateString))
 }
 
-// Función para calcular los días restantes
-const getDaysLeft = (endDate: string | null) => {
-  if (!endDate) return null
-  const now = new Date()
-  const end = new Date(endDate)
-  const diffTime = end.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays
-}
-
 export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !ADMIN_EMAILS.includes(user.email || '')) {
+  // 1. Seguridad Básica: Si no hay usuario, fuera.
+  if (!user) redirect('/login')
+
+  // 2. Verificamos si es Súper-Admin usando la función de la base de datos
+  const { data: isSuperAdmin } = await supabase.rpc('is_super_admin')
+
+  // Si no es Súper-Admin, lo expulsamos al dashboard normal
+  if (!isSuperAdmin) {
     redirect('/dashboard')
   }
 
-  const { data: stores } = await supabase
+  // 3. Usamos el Admin Client para traer TODAS las tiendas (saltando RLS)
+  const adminClient = createAdminClient()
+  const { data: stores } = await adminClient
     .from('stores')
     .select('*')
     .order('created_at', { ascending: false })
@@ -85,7 +84,7 @@ export default async function AdminPage() {
                   <th className="px-6 py-4">Tienda</th>
                   <th className="px-6 py-4">Contacto</th>
                   <th className="px-6 py-4">Plan Actual</th>
-                  <th className="px-6 py-4">Vencimiento</th>
+                  <th className="px-6 py-4">Registro</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -98,8 +97,6 @@ export default async function AdminPage() {
                   </tr>
                 ) : (
                   stores?.map((store) => {
-                    const daysLeft = getDaysLeft(store.subscription_ends_at)
-                    
                     return (
                       <tr key={store.id} className="hover:bg-zinc-700/30 transition-colors">
                         <td className="px-6 py-4">
@@ -129,25 +126,11 @@ export default async function AdminPage() {
                             {store.plan_id}
                           </span>
                         </td>
-                        {/* COLUMNA DE VENCIMIENTO */}
-                        <td className="px-6 py-4">
-                          {store.plan_id === 'free' || !store.subscription_ends_at ? (
-                            <span className="text-zinc-500 text-xs italic">N/A</span>
-                          ) : (
-                            <div className="flex flex-col gap-1">
-                              <span className="text-zinc-300 text-xs flex items-center gap-1">
-                                <Calendar size={12} /> {formatDate(store.subscription_ends_at)}
-                              </span>
-                              <span className={`text-xs font-bold flex items-center gap-1 ${
-                                daysLeft && daysLeft <= 5 ? 'text-red-400' : 'text-emerald-400'
-                              }`}>
-                                <Clock size={12} /> 
-                                {daysLeft && daysLeft > 0 
-                                  ? `Quedan ${daysLeft} días` 
-                                  : 'Vencido'}
-                              </span>
-                            </div>
-                          )}
+                        <td className="px-6 py-4 text-zinc-400">
+                          <div className="flex items-center gap-2 text-xs">
+                            <Calendar size={14} />
+                            {formatDate(store.created_at)}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <PlanSelector 
