@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   title: 'Siste Nova Calzado',
   description: 'Sistema de gestión para zapaterías',
   manifest: '/manifest.webmanifest',
-  // 👈 AQUÍ AGREGAMOS EL FAVICON
+  // 👈 FORZAMOS LA RUTA DESDE LA CARPETA PUBLIC
   icons: {
-    icon: '/icon.png', 
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    icon: '/favicon.png', 
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
   appleWebApp: {
     capable: true,
