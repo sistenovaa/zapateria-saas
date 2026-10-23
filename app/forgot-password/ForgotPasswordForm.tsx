@@ -18,8 +18,8 @@ export function ForgotPasswordForm() {
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
 
-    // La URL a la que el usuario volverá después de hacer clic en el correo
-    const redirectTo = `${window.location.origin}/auth/callback?next=/update-password`
+    // 👈 CAMBIO CLAVE: Ahora redirigimos a la ruta /auth/confirm
+    const redirectTo = `${window.location.origin}/auth/confirm?next=/update-password`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
