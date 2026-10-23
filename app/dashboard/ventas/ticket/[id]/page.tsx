@@ -37,7 +37,6 @@ export default async function TicketPage({
 
   const adminClient = createAdminClient()
 
-  // 1. Obtener la venta con el detalle y los datos de la tienda
   const { data: sale } = await adminClient
     .from('sales')
     .select(`
@@ -52,7 +51,6 @@ export default async function TicketPage({
     notFound()
   }
 
-  // 2. Obtener el correo del vendedor
   let vendedorEmail = 'N/A'
   if (sale.created_by) {
     const { data: userData } = await adminClient.auth.admin.getUserById(sale.created_by)
@@ -62,9 +60,29 @@ export default async function TicketPage({
   const store = Array.isArray(sale.stores) ? sale.stores[0] : sale.stores
 
   return (
-    <div className="min-h-screen bg-zinc-200 flex flex-col items-center py-8 print:bg-white print:py-0">
+    <div className="min-h-screen bg-zinc-200 flex flex-col items-center py-8 print:bg-white print:py-0 print:block">
       
-      <div className="w-full max-w-md flex justify-between items-center mb-4 print:hidden px-4">
+      <style>{`
+        @media print {
+          /* Reseteamos márgenes de la página */
+          @page { size: ${ticketSize} auto; margin: 0; }
+          body { margin: 0; padding: 0; background: white; }
+          
+          /* Ocultamos la interfaz del dashboard */
+          aside, header { display: none !important; }
+          main { padding: 0 !important; margin: 0 !important; }
+          
+          /* Ajustamos el contenedor del ticket para que tenga un margen interno */
+          .ticket-print-container {
+            margin: 0 !important;
+            padding: 10px !important; /* 👈 Margen interno para que no se corte el texto */
+            width: 100% !important;
+            box-sizing: border-box;
+          }
+        }
+      `}</style>
+
+      <div className="w-full max-w-md flex justify-between items-center mb-4 px-4 print:hidden">
         <a href="/dashboard/ventas/historial" className="text-sm text-zinc-600 hover:text-zinc-900 flex items-center gap-1">
           &larr; Volver al Historial
         </a>
@@ -72,7 +90,7 @@ export default async function TicketPage({
       </div>
 
       <div 
-        className="bg-white text-black p-4 shadow-lg print:shadow-none print:p-0 print:m-0"
+        className="ticket-print-container bg-white text-black p-4 shadow-lg print:shadow-none"
         style={{ width: ticketSize, fontFamily: 'monospace' }}
       >
         {/* Encabezado */}
@@ -101,7 +119,6 @@ export default async function TicketPage({
             <span>Pago:</span>
             <span className="uppercase">{sale.payment_method}</span>
           </div>
-          {/* 👈 AGREGAMOS EL VENDEDOR AL TICKET */}
           <div className="flex justify-between">
             <span>Vendedor:</span>
             <span className="truncate max-w-[150px]">{vendedorEmail}</span>
@@ -153,7 +170,7 @@ export default async function TicketPage({
           )}
         </div>
 
-        {/* 👈 PIE DE PÁGINA ACTUALIZADO */}
+        {/* Pie de página */}
         <div className="text-center text-xs mt-4">
           <p>¡Gracias por su compra!</p>
           <p className="mt-1">Creado por Siste Nova Calzado</p>
