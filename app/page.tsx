@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { Check, Store, Zap, ShieldCheck } from 'lucide-react'
+import { Check, Store, Zap, ShieldCheck, Footprints } from 'lucide-react'
 import { PLANS } from '@/lib/plans'
 
 const formatCOP = (value: number) => {
@@ -28,7 +28,10 @@ export default async function LandingPage() {
       <nav className="border-b border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl text-zinc-900">
-            <Store className="text-emerald-600" /> Zapatería SaaS
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+              <Footprints size={20} />
+            </div>
+            Siste Nova Calzado
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">
@@ -59,7 +62,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* FEATURES (Por qué elegirnos) */}
+      {/* FEATURES */}
       <section className="py-16 bg-zinc-50 border-y border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-8 text-center">
           <div className="p-6">
@@ -133,7 +136,6 @@ export default async function LandingPage() {
                   variant={plan.highlighted ? 'primary' : 'outline'} 
                   className={`w-full h-12 text-base ${!plan.highlighted && 'bg-zinc-50'}`}
                 >
-                  {/* 👈 CAMBIO CLAVE: Cambiamos el texto del botón para mayor claridad */}
                   {plan.price === 0 ? 'Empezar Gratis' : 'Registrarse y Pagar'}
                 </Button>
               </Link>
@@ -144,7 +146,7 @@ export default async function LandingPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-zinc-200 py-8 text-center text-zinc-500 text-sm">
-        <p>© {new Date().getFullYear()} Zapatería SaaS. Todos los derechos reservados.</p>
+        <p>© {new Date().getFullYear()} Siste Nova Calzado. Todos los derechos reservados.</p>
       </footer>
     </div>
   )

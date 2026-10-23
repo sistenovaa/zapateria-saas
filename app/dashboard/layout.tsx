@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
-import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User, Settings, History, BookOpen, Truck, ShoppingBag, Users } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, ExternalLink, LogOut, User, Settings, History, BookOpen, Truck, ShoppingBag, Users, Footprints } from 'lucide-react'
 import { MobileSidebar } from '@/components/ui/MobileSidebar'
 
 export default async function DashboardLayout({
@@ -51,8 +51,13 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-zinc-50 flex">
       <aside className="w-64 bg-white border-r border-zinc-200 flex-col hidden md:flex fixed inset-y-0 left-0 z-10">
-        <div className="h-16 flex items-center px-6 border-b border-zinc-200">
-          <span className="text-xl font-bold text-zinc-900 tracking-tight">Zapatería SaaS</span>
+        <div className="h-16 flex items-center px-6 border-b border-zinc-200 gap-2">
+          {/* Ícono de la marca */}
+          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+            <Footprints size={20} />
+          </div>
+          {/* Nombre de la marca */}
+          <span className="text-lg font-bold text-zinc-900 tracking-tight">Siste Nova Calzado</span>
         </div>
         
         <div className="p-4 flex-1 space-y-1 overflow-y-auto">
@@ -72,28 +77,24 @@ export default async function DashboardLayout({
             </Link>
           )}
 
-          {/* KARDEX: Solo Pro y Premium */}
           {isOwner && isPro && (
             <Link href="/dashboard/inventario/kardex" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <BookOpen size={20} className="text-zinc-500" /> Kardex
             </Link>
           )}
 
-          {/* COMPRAS: Solo Pro y Premium */}
           {isOwner && isPro && (
             <Link href="/dashboard/compras" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <ShoppingBag size={20} className="text-zinc-500" /> Compras
             </Link>
           )}
 
-          {/* PROVEEDORES: Solo Pro y Premium */}
           {isOwner && isPro && (
             <Link href="/dashboard/proveedores" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Truck size={20} className="text-zinc-500" /> Proveedores
             </Link>
           )}
 
-          {/* CLIENTES: Solo Premium */}
           {isOwner && isPremium && (
             <Link href="/dashboard/clientes" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Users size={20} className="text-zinc-500" /> Clientes
@@ -132,7 +133,9 @@ export default async function DashboardLayout({
         <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
           <div className="flex items-center gap-2">
             <MobileSidebar store={store} userEmail={user.email || ''} isOwner={isOwner} isPro={isPro} isPremium={isPremium} />
-            <span className="text-lg font-bold text-zinc-900 md:hidden">Zapatería SaaS</span>
+            <span className="text-lg font-bold text-zinc-900 md:hidden flex items-center gap-1.5">
+              <Footprints size={18} className="text-emerald-600" /> Siste Nova
+            </span>
           </div>
           
           <div className="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-full border border-emerald-100">
