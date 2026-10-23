@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createProduct, updateProduct, deleteProduct } from './actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { X, Trash2, Image as ImageIcon, Plus } from 'lucide-react'
+import { X, Trash2, Image as ImageIcon, Plus, Check, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { PlanId } from '@/lib/plans'
 
@@ -14,6 +14,7 @@ interface Variant {
   color: string
   stock: number
   barcode: string
+  is_active?: boolean
 }
 
 interface Product {
@@ -40,7 +41,6 @@ export function ProductModal({
 }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
   const [imageUrl, setImageUrl] = useState(product?.image_url || '')
   
   const [variants, setVariants] = useState<Variant[]>(() => {
@@ -50,10 +50,11 @@ export function ProductModal({
         size: v.size,
         color: v.color,
         stock: v.stock,
-        barcode: v.barcode || ''
+        barcode: v.barcode || '',
+        is_active: v.is_active !== false // Por defecto true
       }))
     }
-    return [{ size: 35, color: '', stock: 0, barcode: '' }]
+    return [{ size: 35, color: '', stock: 0, barcode: '', is_active: true }]
   })
 
   const [simpleSize, setSimpleSize] = useState<number>(product?.variants?.[0]?.size || 35)
@@ -95,20 +96,14 @@ export function ProductModal({
     setIsLoading(false)
   }
 
-  function handleVariantChange(index: number, field: keyof Variant, value: string | number) {
+  function handleVariantChange(index: number, field: keyof Variant, value: any) {
     const newVariants = [...variants]
     newVariants[index] = { ...newVariants[index], [field]: value }
     setVariants(newVariants)
   }
 
   function addVariant() {
-    // Al agregar, el objeto NO tiene ID
-    setVariants([...variants, { size: 35, color: '', stock: 0, barcode: '' }])
-  }
-
-  function removeVariant(index: number) {
-    if (variants.length === 1) return
-    setVariants(variants.filter((_, i) => i !== index))
+    setVariants([...variants, { size: 35, color: '', stock: 0, barcode: '', is_active: true }])
   }
 
   async function handleSubmit(formData: FormData) {
@@ -117,9 +112,7 @@ export function ProductModal({
 
     formData.append('image_url', imageUrl)
 
-    // 👈 AQUÍ LIMPIAMOS LOS DATOS ANTES DE ENVIARLOS
     if (isPremium) {
-      // Si una variante no tiene ID, lo eliminamos del objeto para que no llegue como "undefined"
       const cleanVariants = variants.map(v => {
         const { id, ...rest } = v
         return id ? { ...rest, id } : rest
@@ -131,7 +124,8 @@ export function ProductModal({
         size: simpleSize, 
         color: simpleColor, 
         stock: simpleStock, 
-        barcode: product?.variants?.[0]?.barcode || '' 
+        barcode: product?.variants?.[0]?.barcode || '',
+        is_active: true
       }]
       formData.append('variants', JSON.stringify(simpleVariant))
     }
@@ -150,7 +144,7 @@ export function ProductModal({
   }
 
   async function handleDelete() {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return
+    if (!confirm('¿Estás seguro de eliminar este producto por completo?')) return
     setIsLoading(true)
     await deleteProduct(product!.id)
     setIsLoading(false)
@@ -213,7 +207,7 @@ export function ProductModal({
           {isPremium ? (
             <div className="mt-4 border-t border-zinc-200 pt-4">
               <div className="flex justify-between items-center mb-3">
-                <label className="text-sm font-medium text-zinc-900">Variantes (Tallas, Colores y Códigos)</label>
+                <label className="text-sm font-medium text-zinc-900">Variantes (Tallas y Colores)</label>
                 <Button type="button" variant="outline" size="sm" onClick={addVariant} className="gap-1 h-8 text-xs">
                   <Plus size={14} /> Agregar Variante
                 </Button>
@@ -221,7 +215,7 @@ export function ProductModal({
               
               <div className="space-y-3">
                 {variants.map((variant, index) => (
-                  <div key={index} className="flex flex-wrap items-end gap-2 bg-zinc-50 p-3 rounded-lg border border-zinc-200">
+                  <div key={index} className={`flex flex-wrap items-end gap-2 p-3 rounded-lg border transition-colors ${variant.is_active === false ? 'bg-zinc-100 border-zinc-300 opacity-60' : 'bg-zinc-50 border-zinc-200'}`}>
                     <div className="flex-1 min-w-[80px]">
                       <label className="text-xs text-zinc-500 mb-1 block">Talla</label>
                       <Input 
@@ -249,20 +243,30 @@ export function ProductModal({
                       />
                     </div>
                     <div className="w-32">
-                      <label className="text-xs text-zinc-500 mb-1 block">C. Barras (Opc)</label>
+                      <label className="text-xs text-zinc-500 mb-1 block">C. Barras</label>
                       <Input 
                         value={variant.barcode}
                         onChange={(e) => handleVariantChange(index, 'barcode', e.target.value)}
-                        className="h-8 text-sm" placeholder="123456"
+                        className="h-8 text-sm" placeholder="Opcional"
                       />
                     </div>
-                    <button 
-                      type="button" onClick={() => removeVariant(index)}
-                      disabled={variants.length === 1}
-                      className="p-1.5 text-zinc-400 hover:text-red-500 disabled:opacity-30 mb-0.5"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    
+                    {/* 👈 CHECKBOX DE ACTIVO/INACTIVO */}
+                    <div className="flex flex-col items-center justify-center mb-1 px-2">
+                      <label className="text-xs text-zinc-500 mb-1 block text-center">Activo</label>
+                      <button
+                        type="button"
+                        onClick={() => handleVariantChange(index, 'is_active', !variant.is_active)}
+                        className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
+                          variant.is_active !== false 
+                            ? 'bg-emerald-100 border-emerald-500 text-emerald-600' 
+                            : 'bg-zinc-200 border-zinc-300 text-zinc-400'
+                        }`}
+                        title={variant.is_active !== false ? "Visible para venta" : "Oculto para venta"}
+                      >
+                        {variant.is_active !== false ? <Check size={18} /> : <AlertCircle size={18} />}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -299,7 +303,7 @@ export function ProductModal({
                 </div>
               </div>
               <p className="text-xs text-zinc-500 mt-3 bg-zinc-100 p-2 rounded">
-                💡 <strong>¿Necesitas manejar múltiples tallas o códigos de barras?</strong> Actualiza al Plan Premium.
+                💡 <strong>¿Necesitas manejar múltiples tallas o desactivar algunas?</strong> Actualiza al Plan Premium.
               </p>
             </div>
           )}

@@ -14,7 +14,6 @@ export default async function VentasPage() {
 
   const adminClient = createAdminClient()
 
-  // 1. Obtener tienda y rol
   const { data: employee } = await adminClient
     .from('employees')
     .select('role, store_id')
@@ -33,7 +32,7 @@ export default async function VentasPage() {
 
   const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
 
-  // 2. Traer productos con sus variantes
+  // 👈 FILTRAMOS LAS VARIANTES ACTIVAS
   const { data: products } = await adminClient
     .from('products')
     .select(`
@@ -42,13 +41,14 @@ export default async function VentasPage() {
     `)
     .eq('store_id', store.id)
     .eq('is_active', true)
+    .eq('variants.is_active', true) // 👈 Solo variantes activas
     .order('name', { ascending: true })
 
+  // Filtramos para dejar solo productos que tengan al menos una variante con stock > 0
   const productsWithStock = (products || []).filter(p => 
-    p.variants && p.variants.some((v: any) => v.stock > 0)
+    p.variants && p.variants.length > 0 && p.variants.some((v: any) => v.stock > 0)
   )
 
-  // 3. Traer clientes para el módulo de créditos
   const { data: customers } = await adminClient
     .from('customers')
     .select('id, name')

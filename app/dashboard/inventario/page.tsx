@@ -21,8 +21,8 @@ export default async function InventoryPage() {
 
   const plan = PLANS[store.plan_id as keyof typeof PLANS] || PLANS.free
 
-  // Hacemos la consulta de productos
-  const { data: productsData, error } = await supabase
+  // 👈 QUITAMOS EL FILTRO DE VARIANTES INACTIVAS
+  const { data: products } = await supabase
     .from('products')
     .select(`
       *,
@@ -32,20 +32,10 @@ export default async function InventoryPage() {
     .eq('is_active', true)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error("Error cargando inventario:", error)
-  }
-
-  // 👈 Aseguramos que 'variants' siempre sea un array y no un objeto o null
-  const products = (productsData || []).map(p => ({
-    ...p,
-    variants: Array.isArray(p.variants) ? p.variants : (p.variants ? [p.variants] : [])
-  }))
-
   return (
     <div>
       <InventoryTable 
-        initialProducts={products} 
+        initialProducts={products || []} 
         plan={plan}
       />
     </div>

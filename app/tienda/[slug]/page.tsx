@@ -32,7 +32,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const { slug } = await params
   const supabase = await createClient()
 
-  // 1. Obtener datos de la tienda (incluyendo el branding)
+  // 1. Obtener datos de la tienda
   const { data: store } = await supabase
     .from('stores')
     .select('id, name, phone, address, logo_url, primary_color, description')
@@ -43,7 +43,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     notFound()
   }
 
-  // 2. Obtener productos con sus variantes
+  // 2. Obtener productos con sus variantes activas
   const { data: products } = await supabase
     .from('products')
     .select(`
@@ -52,11 +52,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     `)
     .eq('store_id', store.id)
     .eq('is_active', true)
+    .eq('variants.is_active', true) // 👈 Filtramos variantes inactivas
     .order('name', { ascending: true })
 
-  // Filtramos productos que no tengan ninguna variante con stock
+  // 3. Filtramos productos que no tengan variantes con stock
   const availableProducts = (products || []).filter(p => 
-    p.variants && p.variants.some((v: any) => v.stock > 0)
+    p.variants && p.variants.length > 0 && p.variants.some((v: any) => v.stock > 0)
   )
 
   const accentColor = store.primary_color || '#10b981'
@@ -67,7 +68,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
       <header className="bg-white border-b border-zinc-200">
         <div className="max-w-5xl mx-auto px-4 py-12 flex flex-col items-center text-center">
           
-          {/* Logo */}
           {store.logo_url && (
             <div className="w-24 h-24 mb-6 rounded-2xl overflow-hidden shadow-sm border border-zinc-100 bg-white">
               <img src={store.logo_url} alt={store.name} className="w-full h-full object-contain" />
@@ -76,7 +76,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
 
           <h1 className="text-4xl font-extrabold text-zinc-900 mb-2">{store.name}</h1>
           
-          {/* Descripción */}
           {store.description && (
             <p className="text-zinc-500 max-w-2xl mb-6">{store.description}</p>
           )}
@@ -116,7 +115,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 key={product.id} 
                 product={product as Product} 
                 phone={store.phone || ''} 
-                accentColor={accentColor} // 👈 Pasamos el color al componente de la tarjeta
+                accentColor={accentColor}
               />
             ))}
           </div>
@@ -124,7 +123,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
       </main>
 
       <footer className="text-center py-8 text-sm text-zinc-400">
-        <p>Tienda creada con Zapatería SaaS</p>
+        <p>Tienda creada con Siste Nova Calzado</p>
       </footer>
     </div>
   )

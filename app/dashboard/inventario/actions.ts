@@ -53,7 +53,8 @@ export async function createProduct(formData: FormData) {
     size: v.size,
     color: v.color,
     stock: v.stock,
-    barcode: v.barcode ? v.barcode.trim() : null
+    barcode: v.barcode ? v.barcode.trim() : null,
+    is_active: v.is_active !== false // Por defecto true
   }))
 
   const { error: variantsError } = await supabase
@@ -76,7 +77,6 @@ export async function createProduct(formData: FormData) {
 export async function updateProduct(id: string, formData: FormData) {
   const supabase = await createClient()
   
-  // 1. Actualizar datos del producto base
   const productData = {
     name: formData.get('name') as string,
     brand: formData.get('brand') as string,
@@ -93,7 +93,6 @@ export async function updateProduct(id: string, formData: FormData) {
 
   if (productError) return { error: productError.message }
 
-  // 2. Procesar variantes
   const variantsJson = formData.get('variants') as string
   let variants = []
   
@@ -107,64 +106,56 @@ export async function updateProduct(id: string, formData: FormData) {
     return { error: 'Debes agregar al menos una talla y color.' }
   }
 
-  // 👈 SOLUCIÓN: Separar en dos grupos (existentes y nuevas)
-  const existingVariants = variants.filter((v: any) => v.id)
-  const newVariants = variants.filter((v: any) => !v.id)
+  // 1. Identificamos las variantes que el usuario quiere conservar (las que tienen ID)
+  const incomingVariantIds = variants.filter((v: any) => v.id).map((v: any) => v.id)
 
-  // 3. Eliminar las variantes que el usuario borró del formulario
-  const incomingVariantIds = existingVariants.map((v: any) => v.id)
-  
+  // 2. Buscamos las variantes actuales en la base de datos
   const { data: currentVariants } = await supabase
     .from('product_variants')
     .select('id')
     .eq('product_id', id)
 
   if (currentVariants) {
-    const idsToDelete = currentVariants
+    // 3. Las variantes que el usuario eliminó del formulario (están en BD pero no en el JSON)
+    const idsToRemove = currentVariants
       .filter(v => !incomingVariantIds.includes(v.id))
       .map(v => v.id)
 
-    if (idsToDelete.length > 0) {
-      await supabase.from('product_variants').delete().in('id', idsToDelete)
+    if (idsToRemove.length > 0) {
+      // 👈 EN LUGAR DE BORRAR, DESACTIVAMOS LA VARIANTE
+      await supabase
+        .from('product_variants')
+        .update({ is_active: false, stock: 0 })
+        .in('id', idsToRemove)
     }
   }
 
-  // 4. Actualizar las variantes que ya existían (una por una para evitar conflictos)
-  for (const v of existingVariants) {
-    const { error } = await supabase
-      .from('product_variants')
-      .update({
-        size: v.size,
-        color: v.color,
-        stock: v.stock,
-        barcode: v.barcode ? v.barcode.trim() : null
-      })
-      .eq('id', v.id)
-    
-    if (error) {
-      if (error.code === '23505') return { error: 'El código de barras ya está registrado en otro producto.' }
-      return { error: 'Error al actualizar la talla ' + v.size + ': ' + error.message }
-    }
-  }
-
-  // 5. Insertar las variantes nuevas
-  if (newVariants.length > 0) {
-    const variantsToInsert = newVariants.map((v: any) => ({
+  // 4. Preparamos las variantes para el UPSERT (actualizar o insertar)
+  const variantsToUpsert = variants.map((v: any) => {
+    const base = {
       product_id: id,
       size: v.size,
       color: v.color,
       stock: v.stock,
-      barcode: v.barcode ? v.barcode.trim() : null
-    }))
-
-    const { error } = await supabase
-      .from('product_variants')
-      .insert(variantsToInsert)
-
-    if (error) {
-      if (error.code === '23505') return { error: 'El código de barras ya está registrado en otro producto.' }
-      return { error: 'Error al guardar las nuevas tallas: ' + error.message }
+      barcode: v.barcode ? v.barcode.trim() : null,
+      is_active: v.is_active !== false // Por defecto true
     }
+    
+    if (v.id) {
+      return { ...base, id: v.id } 
+    }
+    return base 
+  })
+
+  const { error: variantsError } = await supabase
+    .from('product_variants')
+    .upsert(variantsToUpsert)
+
+  if (variantsError) {
+    if (variantsError.code === '23505') {
+      return { error: 'El código de barras ya está registrado en otro producto.' }
+    }
+    return { error: 'Error al actualizar las tallas: ' + variantsError.message }
   }
 
   revalidatePath('/dashboard/inventario')
