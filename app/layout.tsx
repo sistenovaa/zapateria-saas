@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: 'Siste Nova Calzado',
   description: 'Sistema de gestión para zapaterías',
   manifest: '/manifest.webmanifest',
-  // 👈 FORZAMOS LA RUTA DESDE LA CARPETA PUBLIC
+  // Mantenemos la metadata por si acaso
   icons: {
-    icon: '/favicon.png', 
+    icon: '/favicon.png',
     shortcut: '/favicon.png',
     apple: '/favicon.png',
   },
@@ -38,6 +38,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        {/* 👈 FORZAMOS EL ÍCONO EN EL HEAD PARA QUE EL NAVEGADOR NO LO IGNORE */}
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   )
