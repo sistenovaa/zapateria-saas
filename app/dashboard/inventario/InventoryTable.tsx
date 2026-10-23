@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ProductModal } from './ProductModal'
 import { Button } from '@/components/ui/Button'
-import { Plus, Edit2, AlertCircle, Image as ImageIcon, Download, Layers } from 'lucide-react'
+import { Plus, Edit2, AlertCircle, Image as ImageIcon, Download, Layers, EyeOff } from 'lucide-react'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { PlanLimits } from '@/lib/plans'
 
@@ -13,6 +13,7 @@ interface Variant {
   color: string
   stock: number
   barcode: string
+  is_active?: boolean // 👈 Agregamos el campo
 }
 
 interface Product {
@@ -48,20 +49,23 @@ export function InventoryTable({
   }
 
   function exportToCSV() {
-    const headers = ['Producto', 'Marca', 'Categoria', 'Talla', 'Color', 'Codigo Barras', 'Precio Compra', 'Precio Venta', 'Stock']
+    const headers = ['Producto', 'Marca', 'Categoria', 'Talla', 'Color', 'Codigo Barras', 'Precio Compra', 'Precio Venta', 'Stock', 'Estado']
     const rows: any[] = []
 
     initialProducts.forEach(p => {
       if (p.variants && p.variants.length > 0) {
         p.variants.forEach(v => {
-          rows.push([p.name, p.brand, p.category, v.size, v.color, v.barcode || '', p.purchase_price, p.sale_price, v.stock])
+          rows.push([
+            p.name, p.brand, p.category, v.size, v.color, v.barcode || '', 
+            p.purchase_price, p.sale_price, v.stock, 
+            v.is_active === false ? 'Inactiva' : 'Activa'
+          ])
         })
       } else {
-        rows.push([p.name, p.brand, p.category, '-', '-', '', p.purchase_price, p.sale_price, 0])
+        rows.push([p.name, p.brand, p.category, '-', '-', '', p.purchase_price, p.sale_price, 0, 'Sin variantes'])
       }
     })
     
-    // 👈 CORRECCIÓN AQUÍ: Tipamos 'cell' explícitamente como any o string
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.map((cell: any) => `"${cell}"`).join(','))
@@ -83,23 +87,28 @@ export function InventoryTable({
     }).format(value)
   }
 
+  // 👈 SOLO SUMAMOS EL STOCK DE LAS VARIANTES ACTIVAS
   const getTotalStock = (product: Product) => {
-    return product.variants?.reduce((acc, v) => acc + v.stock, 0) || 0
+    return product.variants
+      ?.filter(v => v.is_active !== false)
+      .reduce((acc, v) => acc + v.stock, 0) || 0
   }
 
   const getVariantsSummary = (product: Product) => {
-    if (!product.variants || product.variants.length === 0) return 'Sin variantes'
+    const activeVariants = product.variants?.filter(v => v.is_active !== false) || []
     
-    if (product.variants.length === 1) {
-      return `Talla ${product.variants[0].size} • ${product.variants[0].color}`
+    if (activeVariants.length === 0) return 'Sin variantes activas'
+    
+    if (activeVariants.length === 1) {
+      return `Talla ${activeVariants[0].size} • ${activeVariants[0].color}`
     }
 
-    const sizes = product.variants.map(v => v.size)
+    const sizes = activeVariants.map(v => v.size)
     const minSize = Math.min(...sizes)
     const maxSize = Math.max(...sizes)
-    const colorsCount = new Set(product.variants.map(v => v.color)).size
+    const colorsCount = new Set(activeVariants.map(v => v.color)).size
 
-    return `${product.variants.length} variantes (Tallas ${minSize}-${maxSize}) • ${colorsCount} color(es)`
+    return `${activeVariants.length} activas (Tallas ${minSize}-${maxSize}) • ${colorsCount} color(es)`
   }
 
   return (
@@ -232,6 +241,7 @@ export function InventoryTable({
         />
       )}
 
+      {/* MODAL DE DETALLE DE VARIANTES */}
       {viewVariantsProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -255,14 +265,26 @@ export function InventoryTable({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {viewVariantsProduct.variants.map((v) => (
-                    <tr key={v.id}>
-                      <td className="px-4 py-2 font-medium text-zinc-900">{v.size}</td>
-                      <td className="px-4 py-2 text-zinc-600">{v.color}</td>
-                      <td className="px-4 py-2 text-zinc-400 text-xs">{v.barcode || '-'}</td>
-                      <td className="px-4 py-2 text-right font-medium text-zinc-900">{v.stock}</td>
-                    </tr>
-                  ))}
+                  {viewVariantsProduct.variants.map((v) => {
+                    const isInactive = v.is_active === false
+                    return (
+                      <tr key={v.id} className={isInactive ? 'bg-zinc-50 opacity-60' : ''}>
+                        <td className="px-4 py-2 font-medium text-zinc-900">
+                          {v.size}
+                          {isInactive && (
+                            <span className="ml-2 inline-flex items-center gap-1 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold">
+                              <EyeOff size={10} /> Inactiva
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-zinc-600">{v.color}</td>
+                        <td className="px-4 py-2 text-zinc-400 text-xs">{v.barcode || '-'}</td>
+                        <td className={`px-4 py-2 text-right font-medium ${isInactive ? 'text-zinc-400 line-through' : 'text-zinc-900'}`}>
+                          {v.stock}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
