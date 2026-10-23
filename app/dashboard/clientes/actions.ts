@@ -83,9 +83,9 @@ export async function deleteCustomer(id: string) {
 }
 
 // ==========================================
-// 4. REGISTRAR ABONO A UN CRÉDITO
+// 4. REGISTRAR ABONO (Con método de pago y caja)
 // ==========================================
-export async function registerPayment(creditId: string, amount: number) {
+export async function registerPayment(creditId: string, amount: number, paymentMethod: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -93,7 +93,27 @@ export async function registerPayment(creditId: string, amount: number) {
 
   const adminClient = createAdminClient()
 
-  // 1. Obtener el crédito actual
+  // Verificar caja abierta
+  const { data: store } = await adminClient
+    .from('stores')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (!store) return { error: 'Tienda no encontrada.' }
+
+  const { data: currentSession } = await adminClient
+    .from('cash_sessions')
+    .select('id')
+    .eq('store_id', store.id)
+    .eq('status', 'open')
+    .maybeSingle()
+
+  if (!currentSession) {
+    return { error: 'Debes abrir la caja antes de registrar un abono.' }
+  }
+
+  // Obtener el crédito
   const { data: credit, error: creditError } = await adminClient
     .from('credits')
     .select('*')
@@ -112,11 +132,10 @@ export async function registerPayment(creditId: string, amount: number) {
     return { error: 'El abono no puede ser mayor al saldo pendiente.' }
   }
 
-  // 2. Calcular nuevo saldo
   const newBalance = credit.balance - amount
   const newStatus = newBalance === 0 ? 'paid' : 'pending'
 
-  // 3. Actualizar el crédito
+  // Actualizar crédito
   const { error: updateError } = await adminClient
     .from('credits')
     .update({ 
@@ -130,17 +149,19 @@ export async function registerPayment(creditId: string, amount: number) {
     return { error: 'Error al registrar el abono: ' + updateError.message }
   }
 
-  // 👈 4. Registrar el abono en la nueva tabla
+  // 👈 Guardar historial con el método de pago
   const { error: paymentError } = await adminClient
     .from('credit_payments')
     .insert({
       credit_id: creditId,
       amount: amount,
+      payment_method: paymentMethod, // 👈 Aquí se guarda el método
+      cash_session_id: currentSession.id, // 👈 Aquí se vincula a la caja
       created_by: user.id
     })
 
   if (paymentError) {
-    // Si falla el registro, revertimos el saldo (rollback manual)
+    // Rollback
     await adminClient
       .from('credits')
       .update({ balance: credit.balance, status: credit.status })
@@ -150,5 +171,6 @@ export async function registerPayment(creditId: string, amount: number) {
   }
 
   revalidatePath('/dashboard/clientes')
+  revalidatePath('/dashboard/caja')
   return { success: true, newBalance }
 }

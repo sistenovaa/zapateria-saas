@@ -46,11 +46,13 @@ const formatCOP = (value: number) => {
 export function POSClient({ 
   initialProducts, 
   plan, 
-  customers 
+  customers,
+  sessionId // 👈 Recibimos el ID de la caja
 }: { 
   initialProducts: Product[], 
   plan: PlanLimits,
-  customers: Customer[]
+  customers: Customer[],
+  sessionId: string
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -60,15 +62,12 @@ export function POSClient({
   const [isProcessing, setIsProcessing] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   
-  // Estado para el modal de selección de variante
   const [productToSelect, setProductToSelect] = useState<Product | null>(null)
 
-  // Estados para el Pago Mixto
   const [isMixedPaymentModalOpen, setIsMixedPaymentModalOpen] = useState(false)
   const [mixedCash, setMixedCash] = useState<string>('')
   const [mixedCard, setMixedCard] = useState<string>('')
 
-  // 👈 Nuevos estados para Crédito
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('')
 
@@ -139,7 +138,8 @@ export function POSClient({
       p_payment_method: paymentMethod,
       p_payment_details: paymentDetails,
       p_customer_id: customerId,
-      p_is_credit: isCredit
+      p_is_credit: isCredit,
+      p_cash_session_id: sessionId // 👈 ENVIAMOS EL ID DE LA CAJA
     })
 
     if (error) {
@@ -467,7 +467,7 @@ export function POSClient({
         </div>
       )}
 
-      {/* 👈 MODAL DE VENTA A CRÉDITO */}
+      {/* MODAL DE VENTA A CRÉDITO */}
       {isCreditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">

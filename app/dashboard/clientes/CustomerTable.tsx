@@ -11,6 +11,7 @@ import { showSuccess, showError } from '@/components/ui/Alert'
 interface CreditPayment {
   id: string
   amount: number
+  payment_method: string
   created_at: string
 }
 
@@ -48,6 +49,7 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
   
   const [paymentCustomer, setPaymentCustomer] = useState<Customer | null>(null)
   const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('efectivo') // 👈 Estado para el método
   const [isPaying, setIsPaying] = useState(false)
 
   function handleCreate() {
@@ -63,6 +65,7 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
   function handleOpenPayments(customer: Customer) {
     setPaymentCustomer(customer)
     setPaymentAmount('')
+    setPaymentMethod('efectivo') // Reseteamos al abrir
   }
 
   const getTotalDebt = (customer: Customer) => {
@@ -79,7 +82,7 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
     }
 
     setIsPaying(true)
-    const result = await registerPayment(creditId, amount)
+    const result = await registerPayment(creditId, amount, paymentMethod)
 
     if (result.error) {
       showError(result.error)
@@ -183,7 +186,6 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
         customer={selectedCustomer} 
       />
 
-      {/* MODAL DE ABONOS Y HISTORIAL */}
       {paymentCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
@@ -203,7 +205,6 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
               ) : (
                 paymentCustomer.credits.filter(c => c.status === 'pending').map(credit => (
                   <div key={credit.id} className="border border-zinc-200 rounded-xl overflow-hidden">
-                    {/* Cabecera del Crédito */}
                     <div className="bg-zinc-50 p-4 border-b border-zinc-200 flex justify-between items-center">
                       <span className="text-xs text-zinc-500">
                         Crédito del {new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(credit.created_at))}
@@ -211,15 +212,25 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
                       <span className="font-bold text-red-600">Debe: {formatCOP(credit.balance)}</span>
                     </div>
 
-                    {/* Formulario de Abono */}
-                    <div className="p-4 bg-white flex gap-2">
+                    {/* 👈 FORMULARIO CON SELECTOR DE MÉTODO DE PAGO */}
+                    <div className="p-4 bg-white flex flex-col sm:flex-row gap-2">
                       <Input 
                         type="number" 
                         placeholder="Monto a abonar" 
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(e.target.value)}
-                        className="h-9"
+                        className="h-9 flex-1"
                       />
+                      <select 
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="flex h-9 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="nequi">Nequi / Bre-B</option>
+                      </select>
                       <Button 
                         onClick={() => handleRegisterPayment(credit.id)}
                         isLoading={isPaying}
@@ -229,7 +240,6 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
                       </Button>
                     </div>
 
-                    {/* Historial de Abonos */}
                     {credit.payments && credit.payments.length > 0 && (
                       <div className="bg-zinc-50 p-4 border-t border-zinc-200">
                         <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
@@ -239,7 +249,10 @@ export function CustomerTable({ initialCustomers }: { initialCustomers: Customer
                           {credit.payments.map(payment => (
                             <li key={payment.id} className="flex justify-between items-center text-sm text-zinc-600">
                               <span>{formatDate(payment.created_at)}</span>
-                              <span className="font-medium text-emerald-600">+ {formatCOP(payment.amount)}</span>
+                              <span className="flex items-center gap-2">
+                                <span className="text-xs uppercase text-zinc-400">{payment.payment_method}</span>
+                                <span className="font-medium text-emerald-600">+ {formatCOP(payment.amount)}</span>
+                              </span>
                             </li>
                           ))}
                         </ul>

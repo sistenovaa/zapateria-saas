@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History, BookOpen, Truck, ShoppingBag, Users, Footprints } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, LogOut, History, BookOpen, Truck, ShoppingBag, Users, Footprints, Wallet } from 'lucide-react'
 import { logout } from '@/app/auth/actions'
 import { Button } from './Button'
 
@@ -50,6 +50,12 @@ export function MobileSidebar({
               {isOwner && (
                 <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <LayoutDashboard size={20} className="text-zinc-500" /> Resumen
+                </Link>
+              )}
+
+               {isOwner && isPremium && (
+                <Link href="/dashboard/caja" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
+                  <Wallet size={20} className="text-zinc-500" /> Caja
                 </Link>
               )}
 
