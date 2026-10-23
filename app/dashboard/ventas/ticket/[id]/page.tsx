@@ -37,20 +37,12 @@ export default async function TicketPage({
 
   const adminClient = createAdminClient()
 
-  // 👈 AQUÍ ESTABA EL ERROR: Faltaba pedir 'size' y 'color'
+  // 1. Obtener la venta con el detalle y los datos de la tienda
   const { data: sale } = await adminClient
     .from('sales')
     .select(`
       *,
-      sale_items (
-        id,
-        product_name,
-        quantity,
-        unit_price,
-        subtotal,
-        size,
-        color
-      ),
+      sale_items (*),
       stores (*)
     `)
     .eq('id', id)
@@ -58,6 +50,13 @@ export default async function TicketPage({
 
   if (!sale) {
     notFound()
+  }
+
+  // 2. Obtener el correo del vendedor
+  let vendedorEmail = 'N/A'
+  if (sale.created_by) {
+    const { data: userData } = await adminClient.auth.admin.getUserById(sale.created_by)
+    vendedorEmail = userData?.user?.email || 'N/A'
   }
 
   const store = Array.isArray(sale.stores) ? sale.stores[0] : sale.stores
@@ -102,6 +101,11 @@ export default async function TicketPage({
             <span>Pago:</span>
             <span className="uppercase">{sale.payment_method}</span>
           </div>
+          {/* 👈 AGREGAMOS EL VENDEDOR AL TICKET */}
+          <div className="flex justify-between">
+            <span>Vendedor:</span>
+            <span className="truncate max-w-[150px]">{vendedorEmail}</span>
+          </div>
         </div>
 
         {/* Detalle de productos */}
@@ -120,7 +124,6 @@ export default async function TicketPage({
                 <td className="py-1 align-top">
                   {item.product_name}
                   <br/>
-                  {/* 👈 AHORA SÍ MOSTRARÁ LA TALLA Y EL COLOR */}
                   <span className="text-[10px]">Talla: {item.size} | {item.color}</span>
                 </td>
                 <td className="py-1 text-right align-top">{formatCOP(item.subtotal)}</td>
@@ -150,10 +153,10 @@ export default async function TicketPage({
           )}
         </div>
 
-        {/* Pie de página */}
+        {/* 👈 PIE DE PÁGINA ACTUALIZADO */}
         <div className="text-center text-xs mt-4">
           <p>¡Gracias por su compra!</p>
-          <p className="mt-1">Creado por Zapatería SaaS</p>
+          <p className="mt-1">Creado por Siste Nova Calzado</p>
         </div>
       </div>
     </div>

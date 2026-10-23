@@ -53,7 +53,8 @@ export function MobileSidebar({
                 </Link>
               )}
 
-               {isOwner && isPremium && (
+              {/* CAJA: Visible para Dueños (Premium) y Cajeros (Premium) */}
+              {isPremium && (
                 <Link href="/dashboard/caja" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <Wallet size={20} className="text-zinc-500" /> Caja
                 </Link>
@@ -83,7 +84,8 @@ export function MobileSidebar({
                 </Link>
               )}
 
-              {isOwner && isPremium && (
+              {/* CLIENTES: Visible para Dueños (Premium) y Cajeros (Premium) */}
+              {isPremium && (
                 <Link href="/dashboard/clientes" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
                   <Users size={20} className="text-zinc-500" /> Clientes
                 </Link>

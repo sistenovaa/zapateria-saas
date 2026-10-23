@@ -33,15 +33,16 @@ export default async function VentasPage() {
 
   if (!store) redirect('/onboarding')
 
-  // Verificamos si la caja está abierta
+  // 👈 BUSCAMOS LA CAJA DEL USUARIO ACTUAL (No la de la tienda)
   const { data: currentSession } = await adminClient
     .from('cash_sessions')
     .select('id')
     .eq('store_id', store.id)
+    .eq('opened_by', user.id) // Filtramos por el cajero actual
     .eq('status', 'open')
     .maybeSingle()
 
-  // Si no hay caja abierta, mostramos un mensaje y no dejamos vender
+  // Si no hay caja abierta para este usuario, lo bloqueamos
   if (!currentSession) {
     return (
       <div className="h-full flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -50,7 +51,7 @@ export default async function VentasPage() {
         </div>
         <h2 className="text-2xl font-bold text-zinc-900 mb-2">Caja Cerrada</h2>
         <p className="text-zinc-500 max-w-md mb-6">
-          Para poder registrar ventas o abonos, primero debes abrir la caja del día.
+          Para poder registrar ventas o abonos, primero debes abrir tu turno de caja.
         </p>
         <Link href="/dashboard/caja">
           <Button>Abrir Caja Ahora</Button>
@@ -93,7 +94,7 @@ export default async function VentasPage() {
         initialProducts={productsWithStock} 
         plan={plan} 
         customers={customers || []}
-        sessionId={currentSession.id} // 👈 Pasamos el ID de la caja
+        sessionId={currentSession.id} // 👈 Pasamos el ID de la caja del cajero
       />
     </div>
   )

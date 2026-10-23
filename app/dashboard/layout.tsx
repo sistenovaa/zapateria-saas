@@ -52,11 +52,9 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-zinc-50 flex">
       <aside className="w-64 bg-white border-r border-zinc-200 flex-col hidden md:flex fixed inset-y-0 left-0 z-10">
         <div className="h-16 flex items-center px-6 border-b border-zinc-200 gap-2">
-          {/* Ícono de la marca */}
           <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
             <Footprints size={20} />
           </div>
-          {/* Nombre de la marca */}
           <span className="text-lg font-bold text-zinc-900 tracking-tight">Siste Nova Calzado</span>
         </div>
         
@@ -71,7 +69,8 @@ export default async function DashboardLayout({
             </Link>
           )}
 
-          {isOwner && isPremium && (
+          {/* CAJA: Visible para Dueños (Premium) y Cajeros (Premium) */}
+          {isPremium && (
             <Link href="/dashboard/caja" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Wallet size={20} className="text-zinc-500" /> Caja
             </Link>
@@ -101,7 +100,8 @@ export default async function DashboardLayout({
             </Link>
           )}
 
-          {isOwner && isPremium && (
+          {/* CLIENTES: Visible para Dueños (Premium) y Cajeros (Premium) */}
+          {isPremium && (
             <Link href="/dashboard/clientes" className="flex items-center gap-3 px-3 py-2 text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors font-medium">
               <Users size={20} className="text-zinc-500" /> Clientes
             </Link>

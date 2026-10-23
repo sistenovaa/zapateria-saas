@@ -13,16 +13,16 @@ export async function createCustomer(formData: FormData) {
 
   if (!user) return { error: 'No autorizado' }
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('store_id')
+    .eq('user_id', user.id)
     .single()
 
-  if (!store) return { error: 'Tienda no encontrada' }
+  if (!employee) return { error: 'Empleado no encontrado' }
 
   const customerData = {
-    store_id: store.id,
+    store_id: employee.store_id,
     name: formData.get('name') as string,
     phone: formData.get('phone') as string || null,
     email: formData.get('email') as string || null,
@@ -93,24 +93,26 @@ export async function registerPayment(creditId: string, amount: number, paymentM
 
   const adminClient = createAdminClient()
 
-  // Verificar caja abierta
-  const { data: store } = await adminClient
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
+  // 👈 CORRECCIÓN: Buscamos la tienda en la tabla employees (sirve para dueños y cajeros)
+  const { data: employee } = await adminClient
+    .from('employees')
+    .select('store_id')
+    .eq('user_id', user.id)
     .single()
 
-  if (!store) return { error: 'Tienda no encontrada.' }
+  if (!employee) return { error: 'Empleado no encontrado.' }
 
+  // Verificar caja abierta para ESTE usuario
   const { data: currentSession } = await adminClient
     .from('cash_sessions')
     .select('id')
-    .eq('store_id', store.id)
+    .eq('store_id', employee.store_id)
+    .eq('opened_by', user.id) // 👈 La caja debe ser la del usuario actual
     .eq('status', 'open')
     .maybeSingle()
 
   if (!currentSession) {
-    return { error: 'Debes abrir la caja antes de registrar un abono.' }
+    return { error: 'Debes abrir tu caja antes de registrar un abono.' }
   }
 
   // Obtener el crédito
@@ -149,14 +151,14 @@ export async function registerPayment(creditId: string, amount: number, paymentM
     return { error: 'Error al registrar el abono: ' + updateError.message }
   }
 
-  // 👈 Guardar historial con el método de pago
+  // Guardar historial con el método de pago
   const { error: paymentError } = await adminClient
     .from('credit_payments')
     .insert({
       credit_id: creditId,
       amount: amount,
-      payment_method: paymentMethod, // 👈 Aquí se guarda el método
-      cash_session_id: currentSession.id, // 👈 Aquí se vincula a la caja
+      payment_method: paymentMethod,
+      cash_session_id: currentSession.id,
       created_by: user.id
     })
 

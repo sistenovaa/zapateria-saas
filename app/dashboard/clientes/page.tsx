@@ -13,7 +13,6 @@ export default async function ClientesPage() {
 
   const adminClient = createAdminClient()
 
-  // 1. Verificar que el usuario sea dueño
   const { data: employee } = await adminClient
     .from('employees')
     .select('role, store_id')
@@ -21,22 +20,25 @@ export default async function ClientesPage() {
     .single()
 
   if (!employee) redirect('/onboarding')
-  if (employee.role !== 'owner') redirect('/dashboard')
+  // 👈 QUITAMOS EL REDIRECT PARA CAJEROS
 
-  // 2. Traer los clientes con sus créditos y el historial de pagos de cada crédito
   const { data: customers } = await adminClient
     .from('customers')
     .select(`
       *,
       credits (
         *,
-        payments:credit_payments (*)
+        payments:credit_payments (
+          id,
+          amount,
+          payment_method,
+          created_at
+        )
       )
     `)
     .eq('store_id', employee.store_id)
     .order('name', { ascending: true })
 
-  // Aseguramos que 'credits' y 'payments' siempre sean arrays
   const cleanCustomers = (customers || []).map(c => ({
     ...c,
     credits: (Array.isArray(c.credits) ? c.credits : (c.credits ? [c.credits] : [])).map((credit: any) => ({

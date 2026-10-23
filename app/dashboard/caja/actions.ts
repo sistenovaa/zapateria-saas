@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // ==========================================
-// 1. ABRIR CAJA
+// 1. ABRIR CAJA (Individual por usuario)
 // ==========================================
 export async function openCashSession(formData: FormData) {
   const supabase = await createClient()
@@ -15,25 +15,25 @@ export async function openCashSession(formData: FormData) {
 
   const { data: employee } = await supabase
     .from('employees')
-    .select('role, store_id')
+    .select('store_id')
     .eq('user_id', user.id)
     .single()
 
-  if (!employee || employee.role !== 'owner') {
-    return { error: 'Solo el dueño puede abrir la caja.' }
-  }
+  if (!employee) return { error: 'Empleado no encontrado' }
 
-  // Verificamos que no haya una caja abierta
   const adminClient = createAdminClient()
+  
+  // 👈 Verificamos si ESTE usuario ya tiene una caja abierta (no la tienda entera)
   const { data: existingSession } = await adminClient
     .from('cash_sessions')
     .select('id')
     .eq('store_id', employee.store_id)
+    .eq('opened_by', user.id) // Filtramos por el usuario actual
     .eq('status', 'open')
     .maybeSingle()
 
   if (existingSession) {
-    return { error: 'Ya hay una caja abierta. Debes cerrarla antes de abrir otra.' }
+    return { error: 'Ya tienes una caja abierta. Debes cerrarla antes de abrir otra.' }
   }
 
   const initialAmount = parseFloat(formData.get('initial_amount') as string) || 0
@@ -50,11 +50,13 @@ export async function openCashSession(formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/caja')
+  revalidatePath('/dashboard/ventas')
   return { success: true }
 }
 
 // ==========================================
-// 2. CERRAR CAJA
+// 2. CERRAR CAJA (Con cálculo exacto)
 // ==========================================
 export async function closeCashSession(sessionId: string, finalAmount: number) {
   const supabase = await createClient()
@@ -64,38 +66,18 @@ export async function closeCashSession(sessionId: string, finalAmount: number) {
 
   const adminClient = createAdminClient()
 
-  // Calcular el dinero esperado en caja (solo efectivo)
-  // 1. Dinero inicial
-  const { data: session } = await adminClient
-    .from('cash_sessions')
-    .select('initial_amount')
-    .eq('id', sessionId)
-    .single()
+  // Usamos la función RPC que creamos en la base de datos para calcular el esperado
+  const { data: summary, error: summaryError } = await adminClient.rpc('get_cash_session_summary', {
+    p_session_id: sessionId
+  })
 
-  if (!session) return { error: 'Sesión de caja no encontrada.' }
+  if (summaryError || !summary) {
+    return { error: 'Error al calcular el resumen de caja: ' + (summaryError?.message || 'Desconocido') }
+  }
 
-  // 2. Ventas en efectivo de esta sesión
-  const { data: sales } = await adminClient
-    .from('sales')
-    .select('total')
-    .eq('cash_session_id', sessionId)
-    .eq('payment_method', 'efectivo')
+  // summary.expected_cash trae el total exacto que debería haber en efectivo
+  const expectedAmount = summary.expected_cash
 
-  const cashSales = sales?.reduce((acc, s) => acc + Number(s.total), 0) || 0
-
-  // 3. Abonos en efectivo de esta sesión
-  const { data: payments } = await adminClient
-    .from('credit_payments')
-    .select('amount')
-    .eq('cash_session_id', sessionId)
-    .eq('payment_method', 'efectivo')
-
-  const cashPayments = payments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0
-
-  // 4. Dinero esperado
-  const expectedAmount = Number(session.initial_amount) + cashSales + cashPayments
-
-  // Actualizar la sesión
   const { error } = await adminClient
     .from('cash_sessions')
     .update({
@@ -109,5 +91,7 @@ export async function closeCashSession(sessionId: string, finalAmount: number) {
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
-  return { success: true, expectedAmount }
+  revalidatePath('/dashboard/caja')
+  revalidatePath('/dashboard/ventas')
+  return { success: true, expectedAmount, difference: finalAmount - expectedAmount }
 }

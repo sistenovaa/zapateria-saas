@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone, Calculator, Printer } from 'lucide-react'
+import { Receipt, X, Calendar, Banknote, CreditCard, ArrowRightLeft, Smartphone, Calculator, Printer, User } from 'lucide-react'
 
 interface SaleItem {
   id: string
@@ -11,8 +11,8 @@ interface SaleItem {
   quantity: number
   unit_price: number
   subtotal: number
-  size: number   // 👈 Agregamos
-  color: string  // 👈 Agregamos
+  size: number
+  color: string
 }
 
 interface Sale {
@@ -22,6 +22,7 @@ interface Sale {
   created_at: string
   payment_method: string
   payment_details: any | null
+  created_by: string // 👈 Agregamos esto
   sale_items: SaleItem[]
 }
 
@@ -70,6 +71,7 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                 <tr>
                   <th className="px-6 py-4">Ticket</th>
                   <th className="px-6 py-4">Fecha y Hora</th>
+                  <th className="px-6 py-4">Vendedor</th>
                   <th className="px-6 py-4">Método de Pago</th>
                   <th className="px-6 py-4">Total</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
@@ -78,7 +80,7 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
               <tbody className="divide-y divide-zinc-100">
                 {sales.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                       Aún no hay ventas registradas.
                     </td>
                   </tr>
@@ -94,6 +96,13 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-zinc-900 font-medium">
                           <FormattedDate dateString={sale.created_at} />
+                        </td>
+                        <td className="px-6 py-4">
+                          {/* 👈 NUEVA COLUMNA DE VENDEDOR */}
+                          <div className="flex items-center gap-2 text-xs text-zinc-500">
+                            <User size={14} className="text-zinc-400" />
+                            <span className="truncate max-w-[150px]">{sale.created_by || 'N/A'}</span>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${paymentInfo.color}`}>
@@ -119,7 +128,6 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
         </CardContent>
       </Card>
 
-      {/* MODAL DEL TICKET */}
       {selectedSale && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -149,6 +157,9 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                       <span className="flex items-center gap-1.5 font-medium">
                         <Icon size={16} /> Pagado con: {info.label}
                       </span>
+                      <span className="flex items-center gap-1.5 text-xs">
+                        <User size={14} /> Vendedor: {selectedSale.created_by || 'N/A'}
+                      </span>
                       {selectedSale.payment_method === 'mixto' && selectedSale.payment_details && (
                         <div className="ml-6 mt-1 text-xs text-zinc-400">
                           <p>Efectivo: {formatCOP(selectedSale.payment_details.cash)}</p>
@@ -165,7 +176,6 @@ export function SalesHistoryTable({ sales }: { sales: Sale[] }) {
                   <div key={item.id} className="flex justify-between items-start text-sm">
                     <div className="flex-1">
                       <p className="font-medium text-zinc-900">{item.product_name}</p>
-                      {/* 👈 AQUÍ AGREGAMOS LA TALLA Y EL COLOR */}
                       <p className="text-zinc-500 text-xs">
                         Talla {item.size} • {item.color} • {item.quantity} x {formatCOP(item.unit_price)}
                       </p>
